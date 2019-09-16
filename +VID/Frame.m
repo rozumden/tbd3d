@@ -82,11 +82,11 @@ classdef Frame < handle
       end
 
       function in = consist_color0(this, frames)
-         in = Frame.consist_color(this, frames) < 0.3;
+         in = VID.Frame.consist_color(this, frames) < 0.3;
       end
 
       function in = consist_radius0(this, frames)
-         in = Frame.consist_radius(this, frames) < 0.4;
+         in = VID.Frame.consist_radius(this, frames) < 0.4;
       end
 
       function [FT, len] = remove_bg(this, im, bgr)
@@ -485,7 +485,7 @@ classdef Frame < handle
          region.Radius = model.Radius;
 
          if ~any(inrange)
-            frame = Frame();
+            frame = VID.Frame();
             return;
          elseif ~all(inrange)
             [d,idx] = pdist2(region.TrajectoryXY',region.TrajectoryXY','euclidean','Largest',1);
@@ -497,7 +497,7 @@ classdef Frame < handle
             region.Last = region.Edges(:,ind(2));
          end
          region.PixelIdxList = sub2ind(sz,region.PixelList(2,:),region.PixelList(1,:));
-         frame = Frame(region);
+         frame = VID.Frame(region);
          frame.add_dist(sz);
       end
 

@@ -254,7 +254,7 @@ bb = [p0 p1];
 
 
 function frm = createFrame(im_c, bgr_c, h, f, T, coeff, bb, mbb, fr0, sz)
-frm = Frame();
+frm = VID.Frame();
 frm.isFMO = true; 
 frm.foundPrev = true;
 frm.im_c = im_c; 

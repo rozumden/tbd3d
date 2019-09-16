@@ -70,7 +70,7 @@ for i = 1:numel(seq)
 	exectime(i) = toc(timev);
 	fprintf('Sequence %s took %.3f sec.\n',seq(i).short, exectime(i));  
 
-	frame{i} = [repmat({Frame.empty},1,0) frame{i}];
+	frame{i} = [repmat({VID.Frame.empty},1,0) frame{i}];
 
 	VIS.show_all(t, seq(i), frame{i});
 

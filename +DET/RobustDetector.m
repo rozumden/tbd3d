@@ -40,7 +40,7 @@ classdef RobustDetector < handle
 		function [] = nodetect(this, IM)
 			im = imresize(IM, this.scale_factor);
 			bgr = this.get_bgr(im);
-			this.frame0 = Frame.empty;
+			this.frame0 = VID.Frame.empty;
 			this.proceed(im);
 		end
 
@@ -58,7 +58,7 @@ classdef RobustDetector < handle
 			regions = regions([regions.Area] > 10);
 			dt = round(bwdist(~delta_aug)); dt = dt(2:(end-1),2:(end-1),:);
 			lm = logical(dt >= imdilate(dt, [1 1 1; 1 0 1; 1 1 1])) & (dt > 1.5); 
-			frame = Frame.empty;
+			frame = VID.Frame.empty;
 			for k = 1:numel(regions)
 				if regions(k).Area < 300, continue; end
 				cnt = this.countEdge(regions(k).PixelList);
@@ -173,7 +173,7 @@ classdef RobustDetector < handle
 				end
 			end
 			%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-			frameOut = Frame.empty;
+			frameOut = VID.Frame.empty;
 			if this.num_appear > 1
 				if ~isempty(this.frame0)
 					frameOut = this.getFrames(im, bgr);
@@ -193,7 +193,7 @@ classdef RobustDetector < handle
 		end
 
 		function [frameOut] = getFrames(this, im, bgr)
-			frameOut = Frame.empty;
+			frameOut = VID.Frame.empty;
 			if isempty(this.frame0), return; end
 			conf = [this.frame0.foundPrev] | [this.frame0.foundNext];
 			frameOut = this.frame0(conf);
@@ -210,7 +210,7 @@ classdef RobustDetector < handle
 		end
 
 		function [frmNext] = predict(this, frm, im, bgr)
-			frmNext = Frame.empty;
+			frmNext = VID.Frame.empty;
 			ex = max(frm.BoundingBox(3:4));
 			bb = round(bbextend(frm.BoundingBox, ex, this.Size_r));
 			im_c = im(bb(2):bb(4),bb(1):bb(3),:);
@@ -269,7 +269,7 @@ classdef RobustDetector < handle
             end
 	                
 			rgn.BoundingBox = traj2bb(rgn.TrajectoryXYF, rgn.Radius);
-			frmNext = Frame(rgn); frmNext.isFMO = true; frmNext.foundPrev = true;
+			frmNext = VID.Frame(rgn); frmNext.isFMO = true; frmNext.foundPrev = true;
 			frmNext.im_c = im_c; 
 			frmNext.bgr_c = bgr_c; 
 			frmNext.fmoCheck = true;

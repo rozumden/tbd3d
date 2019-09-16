@@ -29,7 +29,7 @@ classdef FastDetector < handle
 		function [] = nodetect(this, IM)
 			im = imresize(IM, this.scale_factor);
 			bgr = this.get_bgr(im);
-			this.frame0 = Frame.empty;
+			this.frame0 = VID.Frame.empty;
 			this.proceed(im);
 		end
 
@@ -47,7 +47,7 @@ classdef FastDetector < handle
 			dt = round(bwdist(~delta_aug)); dt = dt(2:(end-1),2:(end-1),:);
 			lm = logical(dt >= imdilate(dt, [1 1 1; 1 0 1; 1 1 1])) & (dt > 1.5); 
 
-			frame = Frame.empty;
+			frame = VID.Frame.empty;
 			for k = 1:numel(regions)
 				if regions(k).Area < this.max_size, continue; end
 				cnt = this.countEdge(regions(k).PixelList);

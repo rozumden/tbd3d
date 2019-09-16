@@ -48,7 +48,7 @@ for frmi = 1:numel(frms)
 	if dmean > frm.Radius + 5, s = 0; end
 
 	if s >= params.fmod_th && TRACK.is_edge_bin(T > 0) == 0
-		fr = Frame();
+		fr = VID.Frame();
 		fr.h = h; 
 		fr.M = (1-params.alpha_F)*double(m) + params.alpha_F*double(M);
 		fr.f = (1-params.alpha_F)*f + params.alpha_F*F;

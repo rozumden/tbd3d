@@ -62,7 +62,7 @@ classdef Detector < DET.IDetector
 				regions(i).Trajectory = regions(i).PixelIdxList(normd > this.traj_t);
 				regions(i).TrajectoryXY = regions(i).PixelList(:,normd > this.traj_t);
 				regions(i).Length = 0;
-				if ~Frame.is_connected(regions(i).Trajectory,sz)
+				if ~VID.Frame.is_connected(regions(i).Trajectory,sz)
 				   loss(i) = Inf;
 				   regions(i).Trajectory = [];
 				   regions(i).PixelIdxList = [];
