@@ -22,7 +22,7 @@ maxiter = IF(isfield(params, 'maxiter'), @()params.maxiter, 50); % max number of
 rel_tol = IF(isfield(params, 'rel_tol'), @()params.rel_tol, 1e-4); % relative between iterations difference for outer admm loop
 cg_maxiter = IF(isfield(params, 'cg_maxiter'), @()params.cg_maxiter, 25); % max number of inner CG iterations ('fm' subproblem)
 cg_tol = IF(isfield(params, 'cg_tol'), @()params.cg_tol, [1e-5]); % tolerance for relative residual of inner CG iterations ('h' subproblem); can be several values which are used sequentially each time the convergence criterion holds
-beta_tv = IF(isfield(params, 'beta_tv'), @()params.beta_tv, 2e1*alpha); % splitting vx/vy=Df due to TV regularizer
+beta_tv = IF(isfield(params, 'beta_tv'), @()params.beta_tv, 10*alpha); % splitting vx/vy=Df due to TV regularizer
 beta_tv_m = IF(isfield(params, 'beta_tv_m'), @()params.beta_tv_m, 2e1*alpha_m); % splitting vx_m/vy_m=Dm due to TV regularizer for the mask (equivalent viewpoint - same splitting as vx/y but different alpha/beta param)
 Lp = IF(isfield(params, 'lp'), @()params.lp, 1); % p-exponent of the "TV" Lp regularizer sum |Df|^p, allowed values are 1/2, 1
 Lp_m = IF(isfield(params, 'lp_m'), @()params.lp_m, 1); % p-exponent of the "TV" Lp regularizer sum |Dm|^p for the mask, allowed values are 1/2, 1

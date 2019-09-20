@@ -10,9 +10,12 @@ for frmi = 1:numel(frms)
 	elseif params.use_template %% given from the beginning
 		F = params.F;
 		M = params.M;
-	else %% whatever FMOd thinks
+	elseif ~isempty(frm.f) || ~isempty(frm.M) %% whatever FMOd thinks
 		F = frm.f;
 		M = frm.M;
+	else
+		F = [];
+		M = double(diskMask([], frm.Radius));
 	end
 
 	if any(size2(frm.im_c) < size2(F))

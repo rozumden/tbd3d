@@ -1,5 +1,6 @@
 addpath(genpath('helpers'));
 addpath(genpath('deblatting'))
+addpath(genpath('deblatting_sroubek'))
 
 warning('off','all');
 global check_file;

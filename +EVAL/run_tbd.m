@@ -21,7 +21,7 @@ exectime = zeros(size(seq));
 
 % if isempty(gcp('nocreate')), parpool(numel(seq)); end
 % parfor i = 1:numel(seq)
-for i = 1:numel(seq)
+for i = 5
  	warning('off','all');
 	disp(seq(i).name);
 

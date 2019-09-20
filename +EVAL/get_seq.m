@@ -133,6 +133,12 @@ elseif strcmp(lower(dset), 'atp')
 	seq(numel(seq)+1).name = 'atp_serves.avi';
 	seq(end).start_frame = 566; seq(end).end_frame = 655;
 	folder = '/mnt/lascar/rozumden/dataset';
+elseif strcmp(lower(dset), 'webcam')
+	seq(numel(seq)+1).name = 'throw_30.mp4';
+	seq(numel(seq)+1).name = 'throw_45.mp4';
+	seq(numel(seq)+1).name = 'throw_60.mp4';
+	seq(numel(seq)+1).name = 'throw_0.mp4';
+	folder = '/mnt/lascar/rozumden/dataset/';
 else
 	error('Dataset not found');
 end	
