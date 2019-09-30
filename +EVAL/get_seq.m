@@ -86,6 +86,18 @@ elseif strcmp(lower(dset), 'tbd')
 	seq(end).resize = 2/3; seq(end).start_ind = 1; seq(end).end_ind = []; seq(end).short='hit_tennis2';
 	seq(end).low_contrast = 0; seq(end).fps = 30; seq(end).pad_pcent = 0.2;
 	folder = '/mnt/lascar/rozumden/dataset/TbD_GC';
+elseif strcmp(lower(dset), 'tbd-3d')
+	seq(numel(seq)+1).name = 'HighFPS_GT_depthf1.mat';  
+	seq(numel(seq)+1).name = 'HighFPS_GT_depthf2.mat';  
+	seq(numel(seq)+1).name = 'HighFPS_GT_depthf3.mat';  
+	seq(numel(seq)+1).name = 'HighFPS_GT_depth2.mat';   
+	seq(numel(seq)+1).name = 'HighFPS_GT_depthb2.mat';  
+	seq(numel(seq)+1).name = 'HighFPS_GT_out1.mat';
+	seq(numel(seq)+1).name = 'HighFPS_GT_out2.mat';
+	seq(numel(seq)+1).name = 'HighFPS_GT_outa1.mat';
+	seq(numel(seq)+1).name = 'HighFPS_GT_outb1.mat';
+	seq(numel(seq)+1).name = 'HighFPS_GT_outf1.mat';   
+	folder = '/mnt/lascar/rozumden/dataset/TbD-3D';
 elseif strcmp(lower(dset), 'atp')
 	% 1
 	seq(numel(seq)+1).name = 'atp_serves.avi';

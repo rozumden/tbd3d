@@ -161,7 +161,11 @@ if fr0.Length < 10, len_small = 1; end
 if s > s_th(1) && len_diff < 1 && len_small > 1/2
 	fr = createFrame(im_c, bgr_c, h, f, T, coeff, bb, mbb, fr0, size(im));
 	fr.M = (1-params.alpha_F)*double(m) + params.alpha_F*double(M);
-	fr.f = (1-params.alpha_F)*f + params.alpha_F*template;
+	if ~isempty(template)
+		fr.f = (1-params.alpha_F)*f + params.alpha_F*template;
+	else
+		fr.f = f;
+	end
 	fr.Length = len;
 	fr.fittingScore = s;
 	fr.hmask = hmask;

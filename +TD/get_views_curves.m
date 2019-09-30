@@ -1,4 +1,8 @@
-function [matF, matM, ind] = get_views_curves(video, curves, m, f)
+function [matF, matM, ind] = get_views_curves(video, curves, m, f, fixed_n)
+if ~exist('fixed_n','var')
+	fixed_n = false;
+end
+
 matF = [];
 matM = [];
 ind = [];
@@ -22,11 +26,15 @@ bgr = bgr.^(gm);
 f = f.^(gm);
 f = f.*repmat(m,[1 1 3]);
 BL = zeros(size(f));
+BLM = zeros(size(m));
 for ci = 1:numel(curves)
 	crv = curves(ci);
 	if crv.fit_iv == 0, continue; end
 	ilen = crv.fit_iv(2) - crv.fit_iv(1) + 1;
 	nav = max(1, min(max_n, 2^round(log2( round(crv.len / (pixels_per_view * ilen))))));
+	if fixed_n
+		nav = max_n;
+	end
 	nn = nav*ilen;
 	n = nav;
 	
@@ -41,14 +49,20 @@ for ci = 1:numel(curves)
 		end
 		h = h / sum(h(:));
 
-		[F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, [], [], 'alpha', 2^-10, 'beta_tv', 2e1*2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'alpha_ml1', 0, 'beta_ml1', 0, 'lambda', 1e-1, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 25, 'cg_tol', 1e-6);
-	
+		[F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+		% [F0,M0,roi] = estimateFM_motion_template(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+		F0 = F0.*m; M0 = M0.*m;
+
 		if isempty(n)
 			n = max(1, min(max_n, 2^round(log2( round(crvlen / pixels_per_view) ))));
+			if fixed_n
+				n = max_n;
+			end
 		end
 
 		Fs = F0; Ms = M0;
 		HR = cat(4, Fs, repmat(BL,[1 1 1 n-1]));
+		HRM = cat(4, Ms, repmat(BLM,[1 1 1 n-1]));
 		for powi = 1:log2(n)
 			ni = 2^powi;
 			Ftemplate = Fs(:,:,:,repelem(1:size(Fs,4),2));
@@ -69,17 +83,21 @@ for ci = 1:numel(curves)
 			end
 			Hs = Hs / sum(Hs(:));
 			
-			[Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'beta_tv', 2e1*2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'alpha_ml1', 0, 'beta_ml1', 0, 'lambda', 1e-3, 'lambda_m0', 0, 'm0', m, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			[Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'lambda_m0', 0, 'm0', m, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
 			Fs = Fs.^(1/gm); Ms = Ms.^(1/gm);
 			% Fs = Fs.*m; Ms = Ms.*m;
 			
 			for ttt = 1:ni, HR = cat(4, HR, Fs(:,:,:,ttt), repmat(BL,[1 1 1 n/ni-1])); end
+			for ttt = 1:ni, HRM = cat(4, HRM, Ms(:,:,:,ttt), repmat(BLM,[1 1 1 n/ni-1])); end
 
 		end
 
 		matF = cat(4, matF, Fs);
 		matM = cat(4, matM, Ms);
-		ind = [ind repmat(ti, 1, size(Fs,4))];
+		ivs = linspace(ti,ti+1,n+1); 
+		ind = [ind ivs(1:end-1)];
+		
+		% if ti > 4, keyboard; end
 
 		if false
 			I1 = montage(HR, 'Size', [size(HR,4)/n n]); C1 = I1.CData;
@@ -114,4 +132,4 @@ end
 
 ntemp = ceil(sqrt(size(matF,4)));
 temp = montage(matF, 'Size', [ntemp ntemp]);
-reshape([ind zeros(1,ntemp^2-size(matF,4))], [ntemp ntemp])';
+% reshape([ind zeros(1,ntemp^2-size(matF,4))], [ntemp ntemp])';

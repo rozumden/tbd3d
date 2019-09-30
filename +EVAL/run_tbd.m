@@ -21,7 +21,7 @@ exectime = zeros(size(seq));
 
 % if isempty(gcp('nocreate')), parpool(numel(seq)); end
 % parfor i = 1:numel(seq)
-for i = 5
+for i = 4
  	warning('off','all');
 	disp(seq(i).name);
 
@@ -102,4 +102,7 @@ fprintf('[TbD-NC] Mean TIoU is %.3f\n', mean(tiou_nc_mean));
 
 lens = cellfun(@(x) numel(x), frame);
 meanex = exectime ./ lens; 	
+
+
+
 

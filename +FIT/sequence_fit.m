@@ -193,7 +193,7 @@ for ivid = 1:numel(intervals)
 			end
 			curves = [curves(1:end-1) crv1 curves(end)];
 		end
-		if kki > 2 %% connect between one serve
+		if kki > 2 && numel(curves) > 1 %% connect between one serve
 			crv0 = curves(end-1);
 			in0 = crv0.fit_iv(2);
 			in1 = crv.fit_iv(1);

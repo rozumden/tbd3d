@@ -1,4 +1,4 @@
-function [szs] = estimate_3d(Fs,Ms,meth)
+function [sz] = estimate_3d(Fs,Ms,meth)
 if ~exist('meth','var')
 	meth = 2;
 end
@@ -36,5 +36,3 @@ for k = 1:size(Fs,4)
 	end
 end
 
-szs = sz;
-% szs = smooth(sz, 'rlowess');

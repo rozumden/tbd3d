@@ -17,7 +17,7 @@ end
 % [matF,matM] = TD.get_views(video,curves_all{i}, M, F);
 
 [Fs,Ms] = TD.get_views_coeffs(frm);
-[szs] = TD.estimate_3d(Fs,Msd,2);
+[szs] = TD.estimate_3d(Fs,Ms,2);
 
 
 % imgmean = zeros(size(video.get_frame(1)));
