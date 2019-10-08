@@ -94,9 +94,12 @@ elseif strcmp(lower(dset), 'tbd-3d')
 	seq(numel(seq)+1).name = 'HighFPS_GT_depthb2.mat';  
 	seq(numel(seq)+1).name = 'HighFPS_GT_out1.mat';
 	seq(numel(seq)+1).name = 'HighFPS_GT_out2.mat';
-	seq(numel(seq)+1).name = 'HighFPS_GT_outa1.mat';
+	% seq(numel(seq)+1).name = 'HighFPS_GT_outa1.mat';
 	seq(numel(seq)+1).name = 'HighFPS_GT_outb1.mat';
 	seq(numel(seq)+1).name = 'HighFPS_GT_outf1.mat';   
+	folder = '/mnt/lascar/rozumden/dataset/TbD-3D';
+elseif strcmp(lower(dset), 'tbd-3d-aero')
+	seq(numel(seq)+1).name = 'HighFPS_GT_outa1.mat';
 	folder = '/mnt/lascar/rozumden/dataset/TbD-3D';
 elseif strcmp(lower(dset), 'atp')
 	% 1

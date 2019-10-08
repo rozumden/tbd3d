@@ -1,4 +1,4 @@
-function [tiou, tiou_mean] = gt_cost_iou_3d_curves(curves, frms, PAR, method)
+function [tiou, tiou_mean] = gt_cost_iou_3d_curves(curves, frms, PAR, method, r3d)
 %% method: 1 - TIoU, 2 - TIoU-3D
 if ~exist('method','var')
 	method = 1;
@@ -11,6 +11,7 @@ ef = 0.92;
 
 frms_all = [frms{:}];
 r_est = frms_all(1).Radius;
+
 tiou = zeros(1,numel(PAR));
 for ki = 1:numel(curves)
 	crv = curves(ki);
@@ -21,6 +22,8 @@ for ki = 1:numel(curves)
 		%% GT
 		pars = PAR(ind).POS;
 		r = PAR(ind).R;
+		r = [r(:)];
+		
 		pars = pars(:,sum(pars) ~= 0);
 		if size(pars,2) == 1, pars = [pars pars]; end
 		coeff = {};
@@ -69,9 +72,14 @@ for ki = 1:numel(curves)
 				iou5 = 0; iou6 = 0;
 			end
 		elseif method == 2
-			p1 = [p1 repmat(r_est,parts,1)];
-			p1_ref = [p1_ref repmat(r_est,parts,1)];
-			p1_raw = [p1_raw repmat(r_est,parts,1)];
+			if exist('r3d','var')
+				r_use = r3d{ind};
+			else
+				r_use = repmat(r_est,parts,1);
+			end
+			p1 = [p1 r_use];
+			p1_ref = [p1_ref r_use];
+			p1_raw = [p1_raw r_use];
 			p2 = [p2 r];
 			iou1 = FIT.calciou3d(p1, p2, r);
 			iou2 = FIT.calciou3d(fliplr(p1')', p2, r);
@@ -87,12 +95,12 @@ for ki = 1:numel(curves)
 			error('Method not defined');
 		end
 
-		mn1 = mean(iou1);
-		mn2 = mean(iou2);
-		mn3 = mean(iou3);
-		mn4 = mean(iou4);
-		mn5 = mean(iou5);
-		mn6 = mean(iou6);
+		mn1 = nanmean(iou1);
+		mn2 = nanmean(iou2);
+		mn3 = nanmean(iou3);
+		mn4 = nanmean(iou4);
+		mn5 = nanmean(iou5);
+		mn6 = nanmean(iou6);
 		tiou(ind) = max([mn1 mn2 mn3 mn4 mn5 mn6]);
 	end
 end

@@ -1,4 +1,4 @@
-function [Vk,Vk_WB,PAR] = generate_lowFPSvideo(V,POS,R,k,resz)
+function [Vk,Vk_WB,PAR,V_WB] = generate_lowFPSvideo(V,POS,R,k,resz)
 %% input: V,POS,R
 % fps/k
 if ~exist('k','var')
@@ -48,7 +48,7 @@ if ~isempty(inan)
 end
 j = 1;
 for i = 1:size(Vk,4)
-    i
+    % i
     % render image
     e = j+k-1;
     % linear combination without gamma correction
@@ -70,6 +70,7 @@ end
 if exist('resz','var') && resz ~= 1
     Vk = imresize(Vk, resz);
     Vk_WB = imresize(Vk_WB, resz);
+    V_WB = imresize(V_WB, resz);
     for i = 1:numel(PAR)
         PAR(i).R = PAR(i).R * resz;
         PAR(i).POS = PAR(i).POS * resz;

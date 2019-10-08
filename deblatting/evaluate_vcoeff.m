@@ -22,11 +22,16 @@ dthr = 1;
 parts = 100;
 
 [~, ~, p1_ext] = postprocc(tpar, [], parts, [0 1], false);
-st_ind = max(1, round(parts * ivl(1)));
-en_ind = round(parts * ivl(2));
+st_ind = max(1, ceil(parts * ivl(1)));
+en_ind = ceil(parts * ivl(2));
 p1 = p1_ext(st_ind:en_ind,:);
 
-[~,~,mask] = renderLineMulti(fliplr(p1), isize);
+if size(p1,1) == 1
+	mask = zeros(isize);
+	mask(round(p1(2)),round(p1(1))) = 1;
+else
+	[~,~,mask] = renderLineMulti(fliplr(p1), isize);
+end
 mask = imdilate(mask, ones(21)); % assume deviation max 10 pixels on each side
 [Y X] = find(mask);
 
@@ -42,3 +47,4 @@ T = [X(mask), Y(mask), 2*sqrt(dthr^2 - m(mask).^2)];
 
 I = zeros(isize);
 I(sub2ind(isize,T(:,2),T(:,1))) = T(:,3);
+

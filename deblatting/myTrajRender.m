@@ -78,8 +78,9 @@ for c=1:P
     p = t*tpar{c}.'; %%%% '
     len = len + sum(sqrt(sum((p(2:end,:)-p(1:end-1,:)).^2,2)));
     pts = [pts; p];
-    N(c+1) = round(4*len);
+    N(c+1) = ceil(4*len);
 end
+
 [~,~,mask] = renderLineMulti(fliplr(pts), isize);
 mask = imdilate(mask, ones(21)); % assume deviation max 10 pixels on each side
 [Y X] = find(mask);

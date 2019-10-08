@@ -12,5 +12,5 @@ elseif(isempty(sz))
 end
 
 [x y] = meshgrid(-(sz(2)-1)/2:(sz(2)-1)/2, -(sz(1)-1)/2:(sz(1)-1)/2); % center pixel is (0,0) or no center pixel and 0.5 steps. 'r' is from center to the side (not center of the side pixels)
-mask = x.^2 + y.^2 <= r^2;
+mask = double(x.^2 + y.^2 <= r^2);
 end

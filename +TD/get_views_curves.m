@@ -39,6 +39,7 @@ for ci = 1:numel(curves)
 	n = nav;
 	
 	for ti = crv.fit_iv(1):crv.fit_iv(2)
+		corrupt = false;
 		img = video(:,:,:,ti).^(gm);
 		if strcmp(crv.type, 'bounce')
 			ti_0 = ti - crv.fit_iv(1); crvlen = [];
@@ -47,50 +48,72 @@ for ci = 1:numel(curves)
 			n = [];
 			[h,~,crvlen] = myTrajRender(size2(bgr), crv.coeff, [ti ti+expos]);
 		end
-		h = h / sum(h(:));
-
-		[F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-		% [F0,M0,roi] = estimateFM_motion_template(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-		F0 = F0.*m; M0 = M0.*m;
-
-		if isempty(n)
-			n = max(1, min(max_n, 2^round(log2( round(crvlen / pixels_per_view) ))));
-			if fixed_n
-				n = max_n;
-			end
+		if sum(h(:)) == 0
+			corrupt = true;
+			F0 = f; M0 = m;
+			n = nav;
 		end
 
-		Fs = F0; Ms = M0;
-		HR = cat(4, Fs, repmat(BL,[1 1 1 n-1]));
-		HRM = cat(4, Ms, repmat(BLM,[1 1 1 n-1]));
-		for powi = 1:log2(n)
-			ni = 2^powi;
-			Ftemplate = Fs(:,:,:,repelem(1:size(Fs,4),2));
-			Mtemplate = Ms(:,:,:,repelem(1:size(Fs,4),2));
+		if ~corrupt
+			h = h / sum(h(:));
 
-			Hs = [];
-			for k = 1:ni
-				if strcmp(crv.type, 'bounce')
-					kk = k + ni*(ti - crv.fit_iv(1));
-					H = evaluate_vcoeff(size2(im), crv.coeff, [( ( (kk-1+gap) )/nn) (kk/nn)]);
-				else
-					H = myTrajRender(size2(im), crv.coeff, [ti+( (k-1+gap)/ni)*expos ti+((k)/ni)*expos]);
+			% [F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			% [F0,M0,roi] = estimateFM_motion_template(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			[F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			% F0 = F0.*m; M0 = M0.*m;
+
+			if isempty(n)
+				n = max(1, min(max_n, 2^round(log2( round(crvlen / pixels_per_view) ))));
+				if fixed_n
+					n = max_n;
 				end
-				H = double(H);
-				if sum(H(:)) == 0, error('Sum cannot be zero'); end
-				H = H ./ sum(H(:));
-				Hs = cat(3, Hs, H);
 			end
-			Hs = Hs / sum(Hs(:));
-			
-			[Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'lambda_m0', 0, 'm0', m, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-			Fs = Fs.^(1/gm); Ms = Ms.^(1/gm);
-			% Fs = Fs.*m; Ms = Ms.*m;
-			
-			for ttt = 1:ni, HR = cat(4, HR, Fs(:,:,:,ttt), repmat(BL,[1 1 1 n/ni-1])); end
-			for ttt = 1:ni, HRM = cat(4, HRM, Ms(:,:,:,ttt), repmat(BLM,[1 1 1 n/ni-1])); end
 
+			Fs = F0; Ms = M0;
+			HR = cat(4, Fs, repmat(BL,[1 1 1 n-1]));
+			HRM = cat(4, Ms, repmat(BLM,[1 1 1 n-1]));
+			for powi = 1:log2(n)
+				ni = 2^powi;
+				Ftemplate = Fs(:,:,:,repelem(1:size(Fs,4),2));
+				Mtemplate = Ms(:,:,:,repelem(1:size(Fs,4),2));
+
+				Hs = [];
+				for k = 1:ni
+					if strcmp(crv.type, 'bounce')
+						kk = k + ni*(ti - crv.fit_iv(1));
+						H = evaluate_vcoeff(size2(im), crv.coeff, [( ( (kk-1+gap) )/nn) (kk/nn)]);
+					else
+						H = myTrajRender(size2(im), crv.coeff, [ti+( (k-1+gap)/ni)*expos ti+((k)/ni)*expos]);
+					end
+					H = double(H);
+					if sum(H(:)) == 0
+						disp('Sum cannot be zero');
+						corrupt = true;
+						break;
+					end
+					H = H ./ sum(H(:));
+					Hs = cat(3, Hs, H);
+				end
+				if corrupt, break; end
+				Hs = Hs / sum(Hs(:));
+				
+				lambda_w = (ni/n/5) * 1e-2; alpha_w = (2+ni/n)^-10;
+				% [Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'lambda_m0', 0, 'm0', m, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+				[Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', alpha_w, 'alpha_m', 2^-13,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', lambda_w, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+				
+				Fs = Fs.^(1/gm); Ms = Ms.^(1/gm);
+				% Fs = Fs.*m; Ms = Ms.*m;
+				
+				for ttt = 1:ni, HR = cat(4, HR, Fs(:,:,:,ttt), repmat(BL,[1 1 1 n/ni-1])); end
+				for ttt = 1:ni, HRM = cat(4, HRM, Ms(:,:,:,ttt), repmat(BLM,[1 1 1 n/ni-1])); end
+
+			end
 		end
+
+		if corrupt
+			Fs = repmat(F0,[1 1 1 n]);
+			Ms = repmat(M0,[1 1 1 n]);
+		end	
 
 		matF = cat(4, matF, Fs);
 		matM = cat(4, matM, Ms);

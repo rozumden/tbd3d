@@ -16,6 +16,7 @@ for ki = 1:numel(frms)
 	ind = frm.instance;
 	usedind = [usedind ind];
 	r = PAR(ind).R;
+	r = [r(:)];
 
 	pars = PAR(ind).POS;
 	pars = pars(:,sum(pars) ~= 0);
@@ -53,9 +54,12 @@ for ki = 1:numel(frms)
 		error('Method not defined');
 	end
 
-	mn1 = mean(iou1);
-	mn2 = mean(iou2);
+	mn1 = nanmean(iou1);
+	mn2 = nanmean(iou2);
 	tiou(frm.instance) = max(mn1,mn2);
+	if isnan(tiou(frm.instance))
+		error('NaN score');
+	end
 	len_gt(frm.instance) = sum(len);
 end
 
