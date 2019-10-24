@@ -1,13 +1,25 @@
-function [tiou, tiou_mean] = gt_cost_iou_3d_curves(curves, frms, PAR, method, r3d)
+function [tiou, tiou_mean] = gt_cost_iou_3d_curves(curves, frms, PAR, method, r3d, inds)
 %% method: 1 - TIoU, 2 - TIoU-3D
 if ~exist('method','var')
 	method = 1;
 end
 
+if ~exist('inds','var')
+	inds = [];
+end
+if ~isempty(inds)
+	rr = r3d;
+	if iscell(r3d)
+		rr = [r3d{:}]; 
+	end
+	rr = [rr(:)];
+end
+
 parts = numel(PAR(1).R);
 % ef = 9/10; 
 % ef = 11/12;
-ef = 0.92;
+% ef = 0.92;
+ef = 1;
 
 frms_all = [frms{:}];
 r_est = frms_all(1).Radius;
@@ -27,9 +39,18 @@ for ki = 1:numel(curves)
 		pars = pars(:,sum(pars) ~= 0);
 		if size(pars,2) == 1, pars = [pars pars]; end
 		coeff = {};
-		for kk = 2:size(pars,2)
-			st = pars(:,kk-1);
-			en = pars(:,kk);
+		vec = [];
+		for kk = 1:size(pars,2)
+			st = pars(:,kk);
+			if kk == size(pars,2)
+				if ind == numel(PAR)
+					en = st + vec;
+				else
+					en = PAR(ind+1).POS(:,1);
+				end
+			else
+				en = pars(:,kk+1);
+			end
 			vec = en-st;
 			coeff = [coeff {fliplr([st'; vec'])}];
 		end	
@@ -73,7 +94,12 @@ for ki = 1:numel(curves)
 			end
 		elseif method == 2
 			if exist('r3d','var')
-				r_use = r3d{ind};
+				if isempty(inds)
+					r_use = r3d{ind};
+				else
+					xq = linspace(ind, ind+1, parts+1); xq = xq(1:end-1);
+					r_use = interp1(inds,rr,xq)';
+				end
 			else
 				r_use = repmat(r_est,parts,1);
 			end

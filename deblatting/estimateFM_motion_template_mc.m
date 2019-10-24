@@ -1,35 +1,36 @@
-function [f_img, m_img] = estimateFM_motion_template_mc(g, b, h, f, m, T, state, varargin)
+function [f_img m_img state cost] = estimateFM_motion_template_mc(g, b, h, f, m, T, state, varargin)
 % Image+mask (=object)-estimation subroutine in the blind esimate-F/estimate-H alternating loop or standalone non-blind image/mask estimation for known PSF. The PSF is a regular motion PSF
-% Enforced similarity to template T as |F-M.T|^2 (ie template is ideally preselected image (overestimate), not output from previous call to this function due to multiplication by m)
+% Enforced similarity to template T as |F-T|^2 (original masked formulation can be restored by editing the Ax function and const term rhs_f)
 % Multichannel version (mutiple G images and PSFs, single (f,m) object)
 %
 % g,b - cellarray, input, background resp., double RGB, same size
-% h - cellarray, psf, same 2-size as g,b, 3rd dimension conatins angles
+% h - cellarray, psf, same 2-size as g,b
 % f - [] or initial 'f', rgb same 2-size as mask and same channel count as 'g','b'
 % m - [] or initial mask (logical)
 % One of 'f', 'm', must be spcified to determine size of 'f', 'm'. If more than one is specified, the sizes must match.
-% T - template same size as 'f', the penalty is min |f-m*T| (ie teplate is the object at rest, without exaclty specifying the object shape)
+% T - template same size as 'f', the penalty is min |f-T|^2 (original masked formulation can be restored by editing the Ax function and const term rhs_f)
 % state - strcut containing auxiliary varibles required to resume optimization; simply 'state' as in output
 
 % params
 params = IF(length(varargin) == 1 && isstruct(varargin{1}), @()varargin{1}, @()struct(varargin{:})); % allows passing optional args as a struct or as key-value pairs
 gamma = IF(isfield(params, 'gamma'), @()params.gamma, 1); % data term weight
-alpha = IF(isfield(params, 'alpha'), @()params.alpha, 2^-12); %f tv regularizer weight
-alpha_m = IF(isfield(params, 'alpha_m'), @()params.alpha_m, 0); % mask tv regularizer weight
-alpha_ml1 = IF(isfield(params, 'alpha_ml1'), @()params.alpha_ml1, 0); % mask l1 regularizer weight
+alpha_f = IF(isfield(params, 'alpha_f'), @()params.alpha_f, 2^-12); %f tv regularizer weight
+alpha_m = IF(isfield(params, 'alpha_m'), @()params.alpha_m, 2^-12); % mask tv regularizer weight
+% alpha_ml1 = IF(isfield(params, 'alpha_ml1'), @()params.alpha_ml1, 0); % mask l1 regularizer weight
 lambda = IF(isfield(params, 'lambda'), @()params.lambda, 0); % template L2 term weight (scalar or matrix same size2 as template for spacially-variant weighting)
 lambda_m0 = IF(isfield(params, 'lambda_m0'), @()params.lambda_m0, 0); % mask L2 term weight - term lambda*|m-m0|^2 is added to the loss; lambda_m0 can be scalar or 'image' the of 'm' for space-variant weighting |m-m0|^2_w
+lambda_R = IF(isfield(params, 'lambda_R'), @()params.lambda_R, 0); % mask rotation symmetry weight term, lambda_R*|R*m-m|^2 where R is approx rotational averaging (applied to mask only)
 m0 = IF(isfield(params, 'm0'), @()params.m0, 0); % mask L2 term weight - term lambda*|m-m0|^2 is added to the loss
-maxiter = IF(isfield(params, 'maxiter'), @()params.maxiter, 100); % max number of outer iterations
-rel_tol = IF(isfield(params, 'rel_tol'), @()params.rel_tol, 0e-4); % relative between iterations difference for outer admm loop
-cg_maxiter = IF(isfield(params, 'cg_maxiter'), @()params.cg_maxiter, 50); % max number of inner CG iterations ('h' subproblem)
-cg_tol = IF(isfield(params, 'cg_tol'), @()params.cg_tol, [1e-5]); % tolerance for relative residual of inner CG iterations ('h' subproblem); can be several values which are used sequentially each time the convergence criterion holds
-beta_tv = IF(isfield(params, 'beta_tv'), @()params.beta_tv, 2e1*alpha); % splitting vx/vy=Df due to TV regularizer
-beta_tv_m = IF(isfield(params, 'beta_tv_m'), @()params.beta_tv_m, 2e1*alpha_m); % splitting vx_m/vy_m=Dm due to TV regularizer for the mask (equivalent viewpoint - same splitting as vx/y but different alpha/beta param)
-beta_ml1 = IF(isfield(params, 'beta_ml1'), @()params.beta_ml1, 0); % splitting m=vml1 due mask L1 regularizer
+maxiter = IF(isfield(params, 'maxiter'), @()params.maxiter, 50); % max number of outer iterations
+rel_tol = IF(isfield(params, 'rel_tol'), @()params.rel_tol, 0); % relative between iterations difference for outer admm loop
+cg_maxiter = IF(isfield(params, 'cg_maxiter'), @()params.cg_maxiter, 25); % max number of inner CG iterations ('h' subproblem)
+cg_tol = IF(isfield(params, 'cg_tol'), @()params.cg_tol, 1e-5); % tolerance for relative residual of inner CG iterations ('h' subproblem); can be several values which are used sequentially each time the convergence criterion holds
+beta_f = IF(isfield(params, 'beta_f'), @()params.beta_f, 10*alpha_f); % splitting vx/vy=Df due to TV regularizer
+beta_m = IF(isfield(params, 'beta_m'), @()params.beta_m, 10*alpha_m); % splitting vx_m/vy_m=Dm due to TV regularizer for the mask (equivalent viewpoint - same splitting as vx/y but different alpha/beta param)
+% beta_ml1 = IF(isfield(params, 'beta_ml1'), @()params.beta_ml1, 0); % splitting m=vml1 due mask L1 regularizer
 Lp = IF(isfield(params, 'lp'), @()params.lp, 1); % p-exponent of the "TV" Lp regularizer sum |Df|^p, allowed values are 1/2, 1
 Lp_m = IF(isfield(params, 'lp_m'), @()params.lp_m, 1); % p-exponent of the "TV" Lp regularizer sum |Dm|^p for the mask, allowed values are 1/2, 1
-beta_fm = IF(isfield(params, 'beta_fm'), @()params.beta_fm, 1e-4); % splitting vf=f adn vm=m due to (f,m) \in C constraint where C is prescribed convex set given by positivity and f-m relation, penalty weight
+beta_fm = IF(isfield(params, 'beta_fm'), @()params.beta_fm, 1e-3); % splitting vf=f adn vm=m due to (f,m) \in C constraint where C is prescribed convex set given by positivity and f-m relation, penalty weight
 pyramid_eps = IF(isfield(params, 'pyramid_eps'), @()params.pyramid_eps, 1); % inverse slope of the f<=m/eps constraing for each channel. eps=0 means no constraint (only m in [0,1], f>0), eps=1 means f<=m etc.
 fig = IF(isfield(params, 'fig'), @()params.fig, []); % figure handle or id for plotting intermediate results; set to [] to disable plotting
 verbose = IF(isfield(params, 'verbose'), @()params.verbose, false); % 1=display info message in each iteration, 0=don't
@@ -50,12 +51,10 @@ else
 	error('One of `f` or `m` must be specified to determine size. Pass trivial value like `zeros` etc.');
 end
 
-% % crop images to minimal relevant roi (speeds-up the calculation of FTs)
-for i = 1:numel(h)
+% crop images to minimal relevant roi (speeds-up the calculation of FTs)
+num_h = length(h);
+for i=1:num_h
 	roi = boundingBox(h{i});
-	if(isempty(roi)) % quick HACK to deal with h==0
-		roi = round(size2(h{i})/2); roi = roi([1 1 2 2]);
-	end
 	pad = ceil((fsize(1:2)-1)/2); % necessary amount of hmask padding when cropping the input to minimal size required in the FTs
 	roi = roi + [-pad(1), +pad(1), -pad(2), +pad(2)]; % relevant region in the input image
 	roi = min(max(roi, [1 1 1 1]), size2(h{i},[1 1 2 2]));
@@ -82,9 +81,12 @@ else
 	m = double(m(:)); % intial mask as column vector
 end
 lambda = lambda(:);
-if(any(lambda > 0)) T = vec3(T); else T = 0; end % template matching
+if(any(lambda > 0))
+	if(~isempty(T)) T = vec3(T); else T=f; end % default
+else
+	lambda = 0; T = 0;
+end
 m0 = double(m0(:)); lambda_m0 = lambda_m0(:); % |m-m0|^2 term and its pixel-wise weighting
-num_h = length(h);
 F = cell(1,num_h); M = cell(1,num_h); idx_large_f = cell(1,num_h); idx_large_m = cell(1,num_h);
 for i=1:num_h
 	gsize = [size(h{i}) fsize(3)];
@@ -100,19 +102,30 @@ if(~isempty(state))
 	vx_m = state.vx_m; vy_m = state.vy_m; ax_m = state.ax_m; ay_m = state.ay_m; % v_m=Dm splitting due to TV (m-part) and its assoc. Lagr. mult.
 	vf = state.vf; af = state.af; % vf=f splitting due to positivity and f=0 outside mask constraint
 	vm = state.vm; am = state.am; % vm=m splitting due to mask between [0,1]
-	vml1 = state.vml1; aml1 = state.aml1; % vml1=m splitting due to mask L1 regularizer
+	% vml1 = state.vml1; aml1 = state.aml1; % vml1=m splitting due to mask L1 regularizer
 
 	% derivatives
 	Dx = state.Dx; Dy = state.Dy; DTD = state.DTD;
+
+	% mask rotation symmetry
+	Rn = state.Rn;
 else
-	vx = zeros(size(f)); vy = zeros(size(f)); ax = zeros(size(f)); ay = zeros(size(f)); % v=Df splitting due to TV and its assoc. Lagr. mult.
-	vx_m = zeros(size(m)); vy_m = zeros(size(m)); ax_m = zeros(size(m)); ay_m = zeros(size(m)); % v_m=Dm splitting due to TV (m-part) and its assoc. Lagr. mult.
-	vf = zeros(size(f)); af = zeros(size(f)); % vf=f splitting due to positivity and f=0 outside mask constraint
-	vm = zeros(size(m)); am = zeros(size(m)); % vm=m splitting due to mask between [0,1]
-	vml1 = zeros(size(m)); aml1 = zeros(size(m)); % vml1=m splitting due to mask L1 regularizer
-	
 	% derivatives
-	[Dx Dy] = createDerivatives(fsize); DTD = Dx.'*Dx + Dy.'*Dy;
+	[Dx Dy] = createDerivatives0(fsize); DTD = Dx.'*Dx + Dy.'*Dy;
+
+	vx = zeros(size(Dx,1),size(f,2)); vy = zeros(size(Dy,1),size(f,2)); ax = 0; ay = 0; % v=Df splitting due to TV and its assoc. Lagr. mult.
+	vx_m = zeros(size(Dx,1),1); vy_m = zeros(size(Dy,1),1); ax_m = 0; ay_m = 0; % v_m=Dm splitting due to TV (m-part) and its assoc. Lagr. mult.
+	vf = 0; af = 0; % vf=f splitting due to positivity and f=0 outside mask constraint
+	vm = 0; am = 0; % vm=m splitting due to mask between [0,1]
+	% vml1 = zeros(size(m)); aml1 = zeros(size(m)); % vml1=m splitting due to mask L1 regularizer
+	
+	% mask rotation symmetry
+	if(lambda_R)
+		Rn = createRnMatrix(fsize(1:2));
+		Rn = Rn.'*Rn-Rn.'-Rn+speye(size(Rn)); % matrix that actually apears in the quad term
+	else
+		Rn = 0;
+	end
 end
 
 % precompute FT
@@ -127,14 +140,14 @@ for i=1:num_h
 	temp = real(ifft2(HT{i}.*fft2(g{i}-b{i}))); rhs_f(:) = rhs_f(:) + temp(idx_large_f{i});
 	temp = real(ifft2(HT{i}.*fft2(sum(b{i}.*(g{i}-b{i}),3)))); rhs_m(:) = rhs_m(:) + temp(idx_large_m{i});
 end
-rhs_f = gamma*rhs_f;
+rhs_f = gamma*rhs_f + lambda.*T; % template matching term with lambda*|F-T| formulation (remove for masked formulation);
 rhs_m = -gamma*rhs_m + lambda_m0.*m0;
 
 % derivatives (note: can be moved to the beginning of admm loop in the relase version and the derivatives calculated before cost function evaluation can be removed)
 fdx = Dx*f; fdy = Dy*f;
 mdx = Dx*m; mdy = Dy*m;
 
-beta_tv4 = [beta_tv(ones(1,fsize(3))) beta_tv_m];
+beta_tv4 = [beta_f(ones(1,fsize(3))) beta_m];
 
 % DBG - cost function evolution
 if(do_cost)
@@ -147,12 +160,12 @@ for iter = 1:maxiter
 	
 	% dual/auxiliary var updates
 	% vx/vy minimization (splitting due to TV regularizer)
-	if(alpha > 0 && beta_tv > 0)
+	if(alpha_f > 0 && beta_f > 0)
 		val_x = fdx+ax; val_y = fdy+ay;
 
-		[shrink_factor] = lp_proximal_mapping(sqrt(val_x.^2 + val_y.^2), alpha/beta_tv, Lp); % isotropic "TV"
-		%[shrink_factor] = lp_proximal_mapping(sqrt(sum(val_x.^2,3) + sum(val_y.^2,3)), alpha/beta_tv, Lp); % isotropic color TV
-		% NOTE: anisotropic TV is factor_x = lp_proximal_mapping(abs(val_x), alpha/beta_tv, Lp), the same for _y (ie different shrink factors for val_x and val_y)
+		[shrink_factor] = lp_proximal_mapping(sqrt(val_x.^2 + val_y.^2), alpha_f/beta_f, Lp); % isotropic "TV"
+		%[shrink_factor] = lp_proximal_mapping(sqrt(sum(val_x.^2,3) + sum(val_y.^2,3)), alpha_f/beta_f, Lp); % isotropic color TV
+		% NOTE: anisotropic TV is factor_x = lp_proximal_mapping(abs(val_x), alpha_f/beta_f, Lp), the same for _y (ie different shrink factors for val_x and val_y)
 				
 		vx = val_x.*shrink_factor;
 		vy = val_y.*shrink_factor;
@@ -163,9 +176,9 @@ for iter = 1:maxiter
 	end
 
 	% vx_m/vy_m minimization (splitting due to TV regularizer for the mask)
-	if(alpha_m > 0 && beta_tv_m > 0)
+	if(alpha_m > 0 && beta_m > 0)
 		val_x = mdx + ax_m; val_y = mdy + ay_m;
-		[shrink_factor] = lp_proximal_mapping(sqrt(val_x.^2 + val_y.^2), alpha_m/beta_tv_m, Lp_m); % isotropic TV
+		[shrink_factor] = lp_proximal_mapping(sqrt(val_x.^2 + val_y.^2), alpha_m/beta_m, Lp_m); % isotropic TV
 
 		vx_m = val_x.*shrink_factor;
 		vy_m = val_y.*shrink_factor;
@@ -194,20 +207,20 @@ for iter = 1:maxiter
 	end
 
 	% vml1 minimization (mask L1 penalty)
-	if(beta_ml1 > 0)
-		% vml1 - L1 shrinking
-		vml1 = m + aml1;
-		temp = vml1 < alpha_ml1/beta_ml1;
-		vml1(temp) = 0; % also forces positivity
-		vml1(~temp) = vml1(~temp) - alpha_ml1/beta_ml1;
+	% if(beta_ml1 > 0)
+	% 	% vml1 - L1 shrinking
+	% 	vml1 = m + aml1;
+	% 	temp = vml1 < alpha_ml1/beta_ml1;
+	% 	vml1(temp) = 0; % also forces positivity
+	% 	vml1(~temp) = vml1(~temp) - alpha_ml1/beta_ml1;
 
-		% lagrange multiplier
-		aml1 = aml1 + m - vml1;
-	end
+	% 	% lagrange multiplier
+	% 	aml1 = aml1 + m - vml1;
+	% end
 	
 	% f/m step
-	rhs1 = rhs_f + beta_tv*(Dx.'*(vx-ax)+Dy.'*(vy-ay)) + beta_fm*(vf-af); % f-part of RHS
-	rhs2 = rhs_m + beta_tv_m*(Dx.'*(vx_m-ax_m)+Dy.'*(vy_m-ay_m)) + beta_fm*(vm-am) + beta_ml1*(vml1-aml1); % m-part of RHS
+	rhs1 = rhs_f + beta_f*(Dx.'*(vx-ax)+Dy.'*(vy-ay)) + beta_fm*(vf-af); % f-part of RHS
+	rhs2 = rhs_m + beta_m*(Dx.'*(vx_m-ax_m)+Dy.'*(vy_m-ay_m)) + beta_fm*(vm-am); % m-part of RHS; + beta_ml1*(vml1-aml1)
 	[fm, cg_iter, cg_residual] = conjgrad(@Ax, [rhs1 rhs2], [f m], cg_tol, cg_maxiter);
 	f = fm(:, 1:fsize(3)); m = fm(:, end);
 
@@ -222,7 +235,7 @@ for iter = 1:maxiter
 	if(do_cost)
 		% F(idx_large_f) = f; M(idx_large_m) = m;
 		% cost(iter).err = sum(reshape(real(ifft2(H.*fft2(F)))-b.*real(ifft2(H.*fft2(M)))-(g-b), [], 1).^2);
-		% cost(iter).cost = gamma/2*cost(iter).err + alpha*sum(sqrt(fdx(:).^2+fdy(:).^2)) + alpha_m*sum(sqrt(mdx(:).^2+mdy(:).^2)) + alpha_ml1*sum(abs(m(:))) + lambda.*sum(sum((f-m.*T).^2))/2 + sum(lambda_m0.*(m-m0).^2)/2;
+		% cost(iter).cost = gamma/2*cost(iter).err + alpha_f*sum(sqrt(fdx(:).^2+fdy(:).^2)) + alpha_m*sum(sqrt(mdx(:).^2+mdy(:).^2)) + alpha_ml1*sum(abs(m(:))) + lambda.*sum(sum((f-m.*T).^2))/2 + sum(lambda_m0.*(m-m0).^2)/2;
 	end
 
 	% note: move to convergence test section
@@ -264,10 +277,11 @@ if(nargout >= 3)
 	state.vx_m = vx_m; state.vy_m = vy_m; state.ax_m = ax_m; state.ay_m = ay_m;
 	state.vf = vf; state.af = af;
 	state.vm = vm; state.am = am;
-	state.vml1 = vml1; state.aml1 = aml1;
+	% state.vml1 = vml1; state.aml1 = aml1;
 
-	% derivatives
+	% derivativese et al
 	state.Dx = Dx; state.Dy = Dy; state.DTD = DTD;
+	state.Rn = Rn;
 end
 
 % DBG, cost function value
@@ -293,12 +307,20 @@ end
 yf = yf*gamma; ym = ym*gamma;
 
 % template matching term
-if(any(lambda > 0))
-	yf = yf + lambda.*(xf-T.*xm);
-	ym = ym + lambda.*(sum(T.^2,2).*xm - sum(T.*xf,2));
-end
+% version with formulation lambda*|F-T|^2 (note: requires const term in the RHS)
+yf = yf + lambda.*xf;
+
+% % original version lambda*|f-m*T|^2: (note: remove const term in the RHS when using this formulation)
+% if(any(lambda > 0))
+% 	yf = yf + lambda.*(xf-T.*xm);
+% 	ym = ym + lambda.*(sum(T.^2,2).*xm - sum(T.*xf,2));
+% end
+
+% mask regularizers
+ym = ym + lambda_m0*xm + lambda_R*(Rn*xm); % (+beta_ml1)
+
 % regularizers/identity terms
-y = [yf ym + beta_ml1*xm + lambda_m0.*xm] + (DTD*x).*beta_tv4 + x*beta_fm;
+y = [yf ym] + (DTD*x).*beta_tv4 + x*beta_fm; % ;+ beta_ml1*xm
 end
 end
 

@@ -28,8 +28,9 @@ else
 end
 
 % linear->quadratic
-w = cellfun(@(x)size(x,2),tpar) < 3;
-tpar(w) = cellfun(@(x)[x zeros(size(x,2),1)], tpar(w), 'UniformOutput', false);
+dof = 3;
+w = cellfun(@(x)size(x,2),tpar) < dof;
+tpar(w) = cellfun(@(x) [x zeros(2,dof-size(x,2))], tpar(w), 'UniformOutput', false);
 
 % get appropriate parts and proportions
 pointsPerUnit = 20; % linearize the curve by this many segments
@@ -43,7 +44,9 @@ else
         p = t*tpar{c}.'; %%%%% '
         lens(c) = sum(sqrt(sum((p(2:end,:)-p(1:end-1,:)).^2,2)));
     end
-    if k > 0
+    if numel(lens) == 1 && lens == 0
+        inter = [0 0];
+    elseif k > 0
         prop = sum(lens) / lens(end);
         extlen = prop / expos;
         gaplen = (1-expos) * extlen;

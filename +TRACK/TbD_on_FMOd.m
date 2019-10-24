@@ -7,19 +7,15 @@ for frmi = 1:numel(frms)
 	if ~isempty(template_pair) %% reconstructed from prevous frames
 		F = template_pair.F;
 		M = template_pair.M;
-		Finit = F;
 	elseif params.use_template %% given from the beginning
 		F = params.F;
 		M = params.M;
-		Finit = F;
 	elseif ~isempty(frm.f) || ~isempty(frm.M) %% whatever FMOd thinks
 		F = frm.f;
 		M = frm.M;
-		Finit = F;
 	else
-		F = [];
 		M = double(diskMask([], frm.Radius));
-		Finit = repmat(M,[1 1 3]);
+		F = repmat(M,[1 1 3]);
 	end
 
 	if any(size2(frm.im_c) < size2(M))
@@ -44,8 +40,8 @@ for frmi = 1:numel(frms)
 		params0.tbd_beta_h = [];
 	end
 	
-	[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, F, Finit, [], [], [], [], params0, params.s_th, 0, 0, false);
-
+	[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, F, [], [], [], [], params0, params.s_th, 0, 0, false);
+		
 	if sum(h(:)) < params.fmod_max_deviation_from_sumh(1) || sum(h(:)) > params.fmod_max_deviation_from_sumh(2)
 		s = 0;
 	end

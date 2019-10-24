@@ -112,7 +112,7 @@ if any(size2(im_c) < size2(template))
 end
 
 [st, en] = getStEn(coeff0, direc, params, fr0, bb, mbb);
-[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, template, template, [], hmask, st, en, params, s_th, fr0.Speed, params.add_dp);
+[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, template, [], hmask, st, en, params, s_th, fr0.Speed, params.add_dp);
 si = s;
 dhmask = bwedge(hmask);
 
@@ -125,7 +125,7 @@ if TRACK.is_edge_bin(T > 0) > 0 || sum(sum(dhmask(T>0))) > 0 || s <= s_th(1)
 	hmask = hmask(bb(2):bb(4),bb(1):bb(3),:);
 	dhmask = bwedge(hmask);
 	[st, en] = getStEn(coeff0, direc, params, fr0, bb, mbb);
-	[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, template, template, [], hmask, st, en, params, s_th, fr0.Speed, params.add_dp);
+	[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, template, [], hmask, st, en, params, s_th, fr0.Speed, params.add_dp);
 end
 
 if params.add_dp && s > s_th(1)
@@ -135,7 +135,7 @@ if params.add_dp && s > s_th(1)
 		hmask = conv2(T, double(diskMask([], incr)), 'same') > 0;
 		if sum(hmask(:)) == 0, s = 0; break; end
 		if ~params.fast_version, h = []; end
-		[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, template, f, h, hmask, st, en, params, s_th, fr0.Speed, false);
+		[h, f, m, T, coeff, len, s] = TRACK.TbD_loop(im_c, bgr_c, M, template, h, hmask, st, en, params, s_th, fr0.Speed, false);
 		dhmask = bwedge(hmask);
 		if s > 0 && params.reject_fit_on_edge && (TRACK.is_edge_bin(T > 0) > 0 || sum(sum(dhmask(T>0))) > 0)
 			s = 0;
@@ -170,7 +170,7 @@ if s > s_th(1) && len_diff < 1 && len_small > 1/2
 	fr.fittingScore = s;
 	fr.hmask = hmask;
 	fr.caseused='TbD';
-	s = si;
+	% s = si;
 end
 
 

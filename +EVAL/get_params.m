@@ -58,6 +58,7 @@ params.ransac_quad_max_samples = 4000;
 params.fast_version = fast_version;
 params.low_contrast_threshold = 0.25;
 params.apply_normalisation = true;
+params.psffit_th = 0.4;
 
 if fast_version
 	params.loop_maxiter = 15;

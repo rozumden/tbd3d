@@ -1,4 +1,4 @@
-function [curves, frms] = sequence_fit(frms, im, expos, power_factor, remove_single_fmod)
+function [curves, frms] = sequence_fit(frms, im, expos, power_factor, remove_single_fmod, max_outliers)
 if nargin < 5
 	remove_single_fmod = true;
 end
@@ -11,7 +11,9 @@ if nargin < 3
 	expos = 1;
 end
 
-max_outliers = 1;
+if ~exist('max_outliers','var')
+	max_outliers = 1;
+end
 
 for id = 1:numel(frms)
 	if ~isempty(frms{id})
@@ -93,6 +95,9 @@ for ivid = 1:numel(intervals)
 	iv = intervals{ivid};
 	fs = frms(iv(1):iv(2));
 	[curve] = FIT.sequence_fit_part(fs, im);
+	if size(curve,2) == 1
+		curve = [curve curve];
+	end
 	dc = [[0; 0] diff(curve')']; 
 	[~,dcind] = min( sum(dc' == mode(dc')) );
 	c1 = curve(dcind,:);
@@ -197,84 +202,86 @@ for ivid = 1:numel(intervals)
 			crv0 = curves(end-1);
 			in0 = crv0.fit_iv(2);
 			in1 = crv.fit_iv(1);
-			p0 = frms{in0}.End';
-			p1 = frms{in1}.Start';
-			p = curve(:,break_points(kki-1));
-			leftout = in1 - in0 - 1;
-			crv1 = [];
-			crv1.iv = crv.iv;
-			crv1.ivid = crv.ivid;
-			remove_end = false;
-			remove_end1 = false;
-			if leftout == 1 %% only one unexplained
-				in = crv0.fit_iv(2) + 1;
-				crv1.fit_iv = [in in];
-				crv1.coeff = FIT.p3coeff(p0,p,p1);
-				[crv1.Fit,~,crv1.len] = myTrajRender(size2(im), crv1.coeff, [0 1]);
-			elseif leftout == 0 %% no unexplained -> make bounce
-				in0 = crv0.fit_iv(2);
-				in1 = crv.fit_iv(1);
+			if in1 > in0
 				p0 = frms{in0}.End';
 				p1 = frms{in1}.Start';
 				p = curve(:,break_points(kki-1));
-				if norm(p - p0) < norm(p-p1) %% bounce at crv0
-					curves(end-1).fit_iv(2) = curves(end-1).fit_iv(2)-1;
-					if curves(end-1).fit_iv(1) > curves(end-1).fit_iv(2) 
-						remove_end1 = true;
-					else
-						st_fit = curves(end-1).fit_iv(1); 
-						en_fit = curves(end-1).fit_iv(2);
-						max_power = max(2, min(6, round((en_fit-st_fit)/power_factor) ));
-						if en_fit-st_fit == 0, max_power = 1; end
-						curves(end-1).coeff = FIT.lsq_fit(frms, st_fit, en_fit, max_power, expos);
-						[curves(end-1).Fit,~,curves(end-1).len] = myTrajRender(size2(im), curves(end-1).coeff, ...
-								[curves(end-1).fit_iv(1) curves(end-1).fit_iv(2)+1]);
+				leftout = in1 - in0 - 1;
+				crv1 = [];
+				crv1.iv = crv.iv;
+				crv1.ivid = crv.ivid;
+				remove_end = false;
+				remove_end1 = false;
+				if leftout == 1 %% only one unexplained
+					in = crv0.fit_iv(2) + 1;
+					crv1.fit_iv = [in in];
+					crv1.coeff = FIT.p3coeff(p0,p,p1);
+					[crv1.Fit,~,crv1.len] = myTrajRender(size2(im), crv1.coeff, [0 1]);
+				elseif leftout == 0 %% no unexplained -> make bounce
+					in0 = crv0.fit_iv(2);
+					in1 = crv.fit_iv(1);
+					p0 = frms{in0}.End';
+					p1 = frms{in1}.Start';
+					p = curve(:,break_points(kki-1));
+					if norm(p - p0) < norm(p-p1) %% bounce at crv0
+						curves(end-1).fit_iv(2) = curves(end-1).fit_iv(2)-1;
+						if curves(end-1).fit_iv(1) > curves(end-1).fit_iv(2) 
+							remove_end1 = true;
+						else
+							st_fit = curves(end-1).fit_iv(1); 
+							en_fit = curves(end-1).fit_iv(2);
+							max_power = max(2, min(6, round((en_fit-st_fit)/power_factor) ));
+							if en_fit-st_fit == 0, max_power = 1; end
+							curves(end-1).coeff = FIT.lsq_fit(frms, st_fit, en_fit, max_power, expos);
+							[curves(end-1).Fit,~,curves(end-1).len] = myTrajRender(size2(im), curves(end-1).coeff, ...
+									[curves(end-1).fit_iv(1) curves(end-1).fit_iv(2)+1]);
+						end
+						if in0 > 1 && ~isempty(frms{in0-1})
+							p0 = frms{in0-1}.End';
+						else
+							p0 = frms{in0}.Start';
+						end
+						crv1.fit_iv = [curves(end-1).fit_iv(2)+1 crv.fit_iv(1)-1];
+					else %% bounce at crv
+						curves(end).fit_iv(1) = curves(end).fit_iv(1)+1;
+						if curves(end).fit_iv(1) > curves(end).fit_iv(2) 
+							remove_end = true;
+						else
+							st_fit = curves(end).fit_iv(1); 
+							en_fit = curves(end).fit_iv(2);
+							max_power = max(2, min(6, round((en_fit-st_fit)/power_factor) ));
+							if en_fit-st_fit == 0, max_power = 1; end
+							curves(end).coeff = FIT.lsq_fit(frms, st_fit, en_fit, max_power, expos);
+							[curves(end).Fit,~,curves(end).len] = myTrajRender(size2(im), curves(end).coeff, ...
+									[curves(end).fit_iv(1) curves(end).fit_iv(2)+1]);
+						end
+						if in1+1 <= numel(frms) && ~isempty(frms{in1+1})
+							p1 = frms{in1+1}.Start';
+						else
+							p1 = frms{in1}.End';
+						end
+						crv1.fit_iv = [curves(end-1).fit_iv(2)+1 curves(end).fit_iv(1)-1];
 					end
-					if in0 > 1 && ~isempty(frms{in0-1})
-						p0 = frms{in0-1}.End';
-					else
-						p0 = frms{in0}.Start';
-					end
-					crv1.fit_iv = [curves(end-1).fit_iv(2)+1 crv.fit_iv(1)-1];
-				else %% bounce at crv
-					curves(end).fit_iv(1) = curves(end).fit_iv(1)+1;
-					if curves(end).fit_iv(1) > curves(end).fit_iv(2) 
-						remove_end = true;
-					else
-						st_fit = curves(end).fit_iv(1); 
-						en_fit = curves(end).fit_iv(2);
-						max_power = max(2, min(6, round((en_fit-st_fit)/power_factor) ));
-						if en_fit-st_fit == 0, max_power = 1; end
-						curves(end).coeff = FIT.lsq_fit(frms, st_fit, en_fit, max_power, expos);
-						[curves(end).Fit,~,curves(end).len] = myTrajRender(size2(im), curves(end).coeff, ...
-								[curves(end).fit_iv(1) curves(end).fit_iv(2)+1]);
-					end
-					if in1+1 <= numel(frms) && ~isempty(frms{in1+1})
-						p1 = frms{in1+1}.Start';
-					else
-						p1 = frms{in1}.End';
-					end
-					crv1.fit_iv = [curves(end-1).fit_iv(2)+1 curves(end).fit_iv(1)-1];
+					crv1.coeff = FIT.p3coeff(p0,p,p1);
+					[crv1.Fit,~,crv1.len] = myTrajRender(size2(im), crv1.coeff, [0 1]);
+				else
+					crv1.fit_iv = [in0+1 in1-1];
+					p = FIT.find_intersect(crv0.coeff, crv.coeff, crv1.fit_iv, im)';
+					crv1.coeff = FIT.p3coeff(p0,p,p1);
+					[crv1.Fit,~,crv1.len] = myTrajRender(size2(im), crv1.coeff, [0 1]);
 				end
-				crv1.coeff = FIT.p3coeff(p0,p,p1);
-				[crv1.Fit,~,crv1.len] = myTrajRender(size2(im), crv1.coeff, [0 1]);
-			else
-				crv1.fit_iv = [in0+1 in1-1];
-				p = FIT.find_intersect(crv0.coeff, crv.coeff, crv1.fit_iv, im)';
-				crv1.coeff = FIT.p3coeff(p0,p,p1);
-				[crv1.Fit,~,crv1.len] = myTrajRender(size2(im), crv1.coeff, [0 1]);
+				crv1.curve = p;
+				crv1.type='bounce';
+				crv_before = curves(1:end-1);
+				crv_after = curves(end);
+				if remove_end
+					crv_after = [];
+				end
+				if remove_end1
+					crv_before = curves(1:end-2);
+				end
+				curves = [crv_before crv1 crv_after];
 			end
-			crv1.curve = p;
-			crv1.type='bounce';
-			crv_before = curves(1:end-1);
-			crv_after = curves(end);
-			if remove_end
-				crv_after = [];
-			end
-			if remove_end1
-				crv_before = curves(1:end-2);
-			end
-			curves = [crv_before crv1 crv_after];
 		end
 		%% predict to future
 		if kki == numel(break_points) && ivid == numel(intervals)

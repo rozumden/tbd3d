@@ -89,7 +89,9 @@ elseif strcmp(lower(dset), 'tbd')
 elseif strcmp(lower(dset), 'tbd-3d')
 	seq(numel(seq)+1).name = 'HighFPS_GT_depthf1.mat';  
 	seq(numel(seq)+1).name = 'HighFPS_GT_depthf2.mat';  
+	seq(numel(seq)).crop = [400 760];
 	seq(numel(seq)+1).name = 'HighFPS_GT_depthf3.mat';  
+	seq(numel(seq)).crop = [400 760];
 	seq(numel(seq)+1).name = 'HighFPS_GT_depth2.mat';   
 	seq(numel(seq)+1).name = 'HighFPS_GT_depthb2.mat';  
 	seq(numel(seq)+1).name = 'HighFPS_GT_out1.mat';

@@ -4,12 +4,15 @@ if ~exist('params_tbd3d','var')
 end
 f0_maxiter = IF(isfield(params_tbd3d, 'f0_maxiter'), @()params_tbd3d.f0_maxiter, 30); 
 maxiter = IF(isfield(params_tbd3d, 'maxiter'), @()params_tbd3d.maxiter, 20); 
+do_intervals = IF(isfield(params_tbd3d, 'do_intervals'), @()params_tbd3d.do_intervals, false); 
 
 
 matF = [];
 matM = [];
 ind = [];
 gm = 1;
+max_n = n;
+pixels_per_view = 5;
 
 gap = 0.07;
 
@@ -33,7 +36,11 @@ for ci = 1:numel(gt_coeffs)
 	[h,~,crvlen] = myTrajRender(size2(bgr), coeff, [0 1]);
 	h = h / sum(h(:));
 
-	[F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', f0_maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+	[F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', f0_maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+
+	if do_intervals
+		n = max(1, min(max_n, 2^round(log2( round(crvlen / pixels_per_view)))));
+	end
 
 	Ftemplate = repmat(F0, [1 1 1 n]);
 	Mtemplate = repmat(M0, [1 1 1 n]);
@@ -47,11 +54,11 @@ for ci = 1:numel(gt_coeffs)
 	end
 	Hs = Hs / sum(Hs(:));
 		
-	[Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+	[Fs,Ms,roi] = estimateFM_motion_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
 	Fs = Fs.^(1/gm); Ms = Ms.^(1/gm);
 
 	matF = cat(4, matF, Fs);
-	matM = cat(4, matM, Ms);
+	matM = cat(3, matM, Ms);
 	ivs = linspace(ci,ci+1,n+1); 
 	ind = [ind ivs(1:end-1)];
 end

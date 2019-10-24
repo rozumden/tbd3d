@@ -28,9 +28,18 @@ for ki = 1:numel(frms)
 	end
 
 	coeff = {};
-	for kk = 2:size(pars,2)
-		st = pars(:,kk-1);
-		en = pars(:,kk);
+	vec = [];
+	for kk = 1:size(pars,2)
+		st = pars(:,kk);
+		if kk == size(pars,2)
+			if ind == numel(PAR)
+				en = st + vec;
+			else
+				en = PAR(ind+1).POS(:,1);
+			end
+		else
+			en = pars(:,kk+1);
+		end
 		vec = en-st;
 		coeff = [coeff {fliplr([st'; vec'])}];
 	end	

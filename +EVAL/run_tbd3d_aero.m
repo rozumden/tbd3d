@@ -1,23 +1,4 @@
-if ~exist('params', 'var')
-	[params, cfg] = EVAL.get_params(true);
-end
-params.use_template = false;
-params.alpha_F = 0;
-params.low_contrast_threshold = Inf;
-params.tbd_alpha_h = 0;
-params.tbd_beta_h = 1e3;
-
-%% accept everything (almost)
-params.fmod_max_deviation_from_sumh = [0.3 4.0];
-params.fmod_th = 0.3;
-params.check_on_M = false;
-params.add_dp = false;
-params.s_th = 0.05;
-
-params.loop_maxiter = 300;
-params.loop_rel_tol = 1e-6;
-
-params.psffit_th = 0.15;
+[params, cfg] = EVAL.get_params(true);
 
 params_tbd3d = [];
 params_tbd3d.do_hier = true;
@@ -26,7 +7,7 @@ params_tbd3d.maxiter = 5;
 params_tbd3d.iter_smoothing = 4;
 params_tbd3d.do_intervals = true;
 
-[seq, folder] = EVAL.get_seq(0,'TbD-3D');
+[seq, folder] = EVAL.get_seq(0,'TbD-3D-aero');
 n = 8;
 resz = 1;
 
@@ -42,13 +23,11 @@ tiou3d_nc_oracle = repmat({[]}, 1, numel(seq));
 tiou3d_nc3d_oracle = repmat({[]}, 1, numel(seq));
 tiou_nc3d3d = repmat({[]}, 1, numel(seq));
 
-if ~exist('Vk','var')
-	Vk = repmat({[]}, 1, numel(seq));
-	Vk_WB = repmat({[]}, 1, numel(seq));
-	PAR = repmat({[]}, 1, numel(seq));
-	V_WB = repmat({[]}, 1, numel(seq));
-	Ms = repmat({[]}, 1, numel(seq));
-end
+Vk = repmat({[]}, 1, numel(seq));
+Vk_WB = repmat({[]}, 1, numel(seq));
+PAR = repmat({[]}, 1, numel(seq));
+V_WB = repmat({[]}, 1, numel(seq));
+Ms = repmat({[]}, 1, numel(seq));
 
 matF_hs = repmat({[]}, 1, numel(seq));
 matM_hs = repmat({[]}, 1, numel(seq));
@@ -61,10 +40,9 @@ ind_est = repmat({[]}, 1, numel(seq));
 szs_gt = repmat({[]}, 1, numel(seq));
 szs_est = repmat({[]}, 1, numel(seq));
 
-for i = 4
-% for i = 1:numel(seq)
-% if isempty(gcp('nocreate')), parpool(numel(seq)); end
-% parfor i = 1:numel(seq)
+do_tbd = false;
+
+for i = 1:numel(seq)
 	warning('off','all');
 	disp(seq(i).name);
 	params0 = params;
@@ -81,35 +59,41 @@ for i = 4
 	params0.F = repmat(params0.M,[1 1 3]);
 	video = VID.VideoMat(Vk{i});
 
-	timev = tic;
-	frame{i} = EVAL.tbd_main_loop(video, cfg, params0);
-	exectime(i) = toc(timev);
-	fprintf('Sequence %s took %.3f sec.\n',seq(i).name, exectime(i));  
+	Ms{i} = double(diskMask([],max(max([PAR{i}.R]))));
 
-	VIS.show_all([], seq(i), frame{i});
+	if do_tbd
+		timev = tic;
+		frame{i} = EVAL.tbd_main_loop(video, cfg, params0);
+		exectime(i) = toc(timev);
+		fprintf('Sequence %s took %.3f sec.\n',seq(i).name, exectime(i));  
 
-	% [expf, ~] = estimate_exposure(frame{i}); 
-	expf = 1;
-	frms = [frame{i}{:}];
-	r_est = max([frms.Radius]);
-	Ms{i} = double(diskMask([],r_est+5));
+		VIS.show_all([], seq(i), frame{i});
 
-	[tiou{i}] = FIT.gt_cost_iou_3d(frame{i}, PAR{i});
-	fprintf('[TbD] Mean TIoU for %s is %.4f\n', seq(i).name, mean([tiou{i}(3:end)]));
+		% [expf, ~] = estimate_exposure(frame{i}); 
+		expf = 1;
+		frms = [frame{i}{:}];
+		r_est = max([frms.Radius]);
+		Ms{i} = double(diskMask([],r_est+5));
 
-	[curves{i}, frms] = FIT.sequence_fit(frame{i}, video.get_frame(3), expf, 6);
-	[tiou_nc{i}] = FIT.gt_cost_iou_3d_curves(curves{i}, frame{i}, PAR{i});
-	fprintf('[TbD-NC] Mean TIoU for %s is %.4f\n', seq(i).name, mean([tiou_nc{i}(3:end)]));
+		[tiou{i}] = FIT.gt_cost_iou_3d(frame{i}, PAR{i});
+		fprintf('[TbD] Mean TIoU for %s is %.4f\n', seq(i).name, mean([tiou{i}(3:end)]));
+
+		[curves{i}, frms] = FIT.sequence_fit(frame{i}, video.get_frame(3), expf, 6);
+		[tiou_nc{i}] = FIT.gt_cost_iou_3d_curves(curves{i}, frame{i}, PAR{i});
+		fprintf('[TbD-NC] Mean TIoU for %s is %.4f\n', seq(i).name, mean([tiou_nc{i}(3:end)]));
+	end
 
 	% VIS.curve(curves{i});
 	% VIS.curve(gt_coeffs{i});
 
 	%% TIoU-3D
-	[tiou3d{i}] = FIT.gt_cost_iou_3d(frame{i}, PAR{i}, 2);
-	fprintf('[TbD] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou3d{i}(3:end)]));
+	if do_tbd
+		[tiou3d{i}] = FIT.gt_cost_iou_3d(frame{i}, PAR{i}, 2);
+		fprintf('[TbD] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou3d{i}(3:end)]));
 
-	[tiou3d_nc{i}] = FIT.gt_cost_iou_3d_curves(curves{i}, frame{i}, PAR{i}, 2);
-	fprintf('[TbD-NC] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou3d_nc{i}(3:end)]));
+		[tiou3d_nc{i}] = FIT.gt_cost_iou_3d_curves(curves{i}, frame{i}, PAR{i}, 2);
+		fprintf('[TbD-NC] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou3d_nc{i}(3:end)]));
+	end
 
 	%% TIoU-3D TbD-Oracle
 	[tiou3d_nc_oracle{i},~,gt_coeffs{i}] = FIT.gt_cost_iou_3d_oracle(r_est, PAR{i});
@@ -120,21 +104,17 @@ for i = 4
 	fprintf('[TbD-NC-3D-Oracle] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou3d_nc3d_oracle{i}(3:end)]));
 
 	%% TbD-3D
-	if isempty(curves{i})
-		tiou_nc3d3d{i} = zeros(1,numel(frame{i}));
-	else
+	if do_tbd
 		[szs_est{i},matF{i},matM{i},ind_est{i}] = TD.estimate_3dtraj(im2double(Vk{i}), curves{i}, Ms{i}, n, params_tbd3d);
 		[tiou_nc3d3d{i}] = FIT.gt_cost_iou_3d_curves(curves{i}, frame{i}, PAR{i}, 2, szs_est{i}, ind_est{i});
+		fprintf('[TbD-NC-3D] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou_nc3d3d{i}(3:end)]));
 	end
-	fprintf('[TbD-NC-3D] Mean TIoU-3D for %s is %.4f\n', seq(i).name, mean([tiou_nc3d3d{i}(3:end)]));
 
 	[matF_hs{i}, matM_hs{i}] = TD.get_views_hs_3d(im2double(V_WB{i}),curves{i},PAR{i},n,true);
 end
-	% catch
-	% 	disp(['Error in ' int2str(i) ' : ' seq(i).name]);
-	% end
+
 if false
-	save('~/projects/data/TbD-3D.mat','frame','curves','Ms','gt_coeffs','ind_est','ind_gt','matF_gt','matM_gt','szs_gt','szs_est','matF','matM');
+	save('~/projects/data/TbD-3D-aero.mat','frame','curves','Ms','gt_coeffs','ind_est','ind_gt','matF_gt','matM_gt','szs_gt','szs_est','matF','matM');
 end
 
 EVAL.get_stats;

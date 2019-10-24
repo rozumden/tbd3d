@@ -1,7 +1,15 @@
-function [matF, matM, ind] = get_views_curves(video, curves, m, f, fixed_n)
-if ~exist('fixed_n','var')
-	fixed_n = false;
+function [matF, matM, ind] = get_views_curves(video, curves, m, f, params_tbd3d)
+if ~exist('params_tbd3d','var')
+	params_tbd3d = [];
 end
+f0_maxiter = IF(isfield(params_tbd3d, 'f0_maxiter'), @()params_tbd3d.f0_maxiter, 30); 
+maxiter = IF(isfield(params_tbd3d, 'maxiter'), @()params_tbd3d.maxiter, 20); 
+lambda_R = IF(isfield(params_tbd3d, 'lambda_R'), @()params_tbd3d.lambda_R, 1e-2); 
+alpha_cross_f = IF(isfield(params_tbd3d, 'alpha_cross_f'), @()params_tbd3d.alpha_cross_f, 2^-12); 
+alpha_cross_m = IF(isfield(params_tbd3d, 'alpha_cross_m'), @()params_tbd3d.alpha_cross_m, 2^-12); 
+do_intervals = IF(isfield(params_tbd3d, 'do_intervals'), @()params_tbd3d.do_intervals, false); 
+
+fixed_n = ~do_intervals;
 
 matF = [];
 matM = [];
@@ -37,7 +45,14 @@ for ci = 1:numel(curves)
 	end
 	nn = nav*ilen;
 	n = nav;
-	
+	if isempty(matF) && crv.fit_iv(1) > 1
+		leng = crv.fit_iv(1) - 1;
+		Fs = repmat(f,[1 1 1 n*leng]);
+		Ms = repmat(m,[1 1 n*leng]);
+		matF = cat(4, matF, Fs);
+		matM = cat(3, matM, Ms);
+	end
+
 	for ti = crv.fit_iv(1):crv.fit_iv(2)
 		corrupt = false;
 		img = video(:,:,:,ti).^(gm);
@@ -57,9 +72,10 @@ for ci = 1:numel(curves)
 		if ~corrupt
 			h = h / sum(h(:));
 
-			% [F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-			% [F0,M0,roi] = estimateFM_motion_template(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-			[F0,M0,roi] = estimateFM_motion_template_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			% [F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			% [F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-2, 'lambda_m0', 0, 'm0', m, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			% [F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', 30, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+			[F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'lambda_R', lambda_R, 'alpha_f', 2^-10, 'alpha_m', 2^-12, 'lambda', 1e-3, 'maxiter', f0_maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
 			% F0 = F0.*m; M0 = M0.*m;
 
 			if isempty(n)
@@ -70,12 +86,12 @@ for ci = 1:numel(curves)
 			end
 
 			Fs = F0; Ms = M0;
-			HR = cat(4, Fs, repmat(BL,[1 1 1 n-1]));
-			HRM = cat(4, Ms, repmat(BLM,[1 1 1 n-1]));
+			% HR = cat(4, Fs, repmat(BL,[1 1 1 n-1]));
+			% HRM = cat(4, Ms, repmat(BLM,[1 1 1 n-1]));
 			for powi = 1:log2(n)
 				ni = 2^powi;
 				Ftemplate = Fs(:,:,:,repelem(1:size(Fs,4),2));
-				Mtemplate = Ms(:,:,:,repelem(1:size(Fs,4),2));
+				Mtemplate = Ms(:,:,repelem(1:size(Fs,4),2));
 
 				Hs = [];
 				for k = 1:ni
@@ -97,26 +113,29 @@ for ci = 1:numel(curves)
 				if corrupt, break; end
 				Hs = Hs / sum(Hs(:));
 				
-				lambda_w = (ni/n/5) * 1e-2; alpha_w = (2+ni/n)^-10;
-				% [Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'lambda_m0', 0, 'm0', m, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-				[Fs,Ms,roi] = estimateFM_motion_template_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', alpha_w, 'alpha_m', 2^-13,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', lambda_w, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
-				
+				% lambda_w = (ni/n/5) * 1e-2; alpha_w = (2+ni/n)^-10;
+				% [Fs,Ms,roi] = estimateFM_motion_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'lambda_m0', 0, 'm0', m, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+				% [Fs,Ms,roi] = estimateFM_motion_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', alpha_w, 'alpha_m', 2^-13,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', lambda_w, 'maxiter', 20, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+				lambda_w = 1e-3; alpha_w = 2^-12;
+				[Fs,Ms,roi] = estimateFM_motion_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha_f', alpha_w, 'alpha_m', 2^-12,  'lambda', lambda_w, 'maxiter', maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6, ...
+							'alpha_cross_f', alpha_cross_f, 'alpha_cross_m', alpha_cross_m, 'lambda_R', lambda_R);
+	
 				Fs = Fs.^(1/gm); Ms = Ms.^(1/gm);
 				% Fs = Fs.*m; Ms = Ms.*m;
 				
-				for ttt = 1:ni, HR = cat(4, HR, Fs(:,:,:,ttt), repmat(BL,[1 1 1 n/ni-1])); end
-				for ttt = 1:ni, HRM = cat(4, HRM, Ms(:,:,:,ttt), repmat(BLM,[1 1 1 n/ni-1])); end
+				% for ttt = 1:ni, HR = cat(4, HR, Fs(:,:,:,ttt), repmat(BL,[1 1 1 n/ni-1])); end
+				% for ttt = 1:ni, HRM = cat(4, HRM, Ms(:,:,:,ttt), repmat(BLM,[1 1 1 n/ni-1])); end
 
 			end
 		end
 
 		if corrupt
 			Fs = repmat(F0,[1 1 1 n]);
-			Ms = repmat(M0,[1 1 1 n]);
+			Ms = repmat(M0,[1 1 n]);
 		end	
 
 		matF = cat(4, matF, Fs);
-		matM = cat(4, matM, Ms);
+		matM = cat(3, matM, Ms);
 		ivs = linspace(ti,ti+1,n+1); 
 		ind = [ind ivs(1:end-1)];
 		
@@ -153,6 +172,6 @@ if false
 	ind = ind(inl);
 end
 
-ntemp = ceil(sqrt(size(matF,4)));
-temp = montage(matF, 'Size', [ntemp ntemp]);
+% ntemp = ceil(sqrt(size(matF,4)));
+% temp = montage(matF, 'Size', [ntemp ntemp]);
 % reshape([ind zeros(1,ntemp^2-size(matF,4))], [ntemp ntemp])';

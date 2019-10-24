@@ -1,7 +1,9 @@
-function [matF, matM, ind] = get_views_hs_3d(video, curves, PAR, Mmax, nf, use_gt)
+function [matF, matM, ind] = get_views_hs_3d(video, curves, PAR, nf, use_gt)
 if ~exist('use_gt','var')
 	use_gt = true;
 end
+rr = [PAR.R];
+Mmax = double(diskMask([],max(rr(:))));
 
 matF = [];
 matM = [];

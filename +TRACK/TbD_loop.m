@@ -1,4 +1,4 @@
-function [h, f, m, T, coeff, len, s] = TbD_loop(im_c, bgr_c, M, template, f, h, hmask, st, en, params, s_th, speed, add_dp, do_normalize)
+function [h, f, m, T, coeff, len, s] = TbD_loop(im_c, bgr_c, M, f, h, hmask, st, en, params, s_th, speed, add_dp, do_normalize)
 if ~exist('do_normalize','var') 
 	do_normalize = true;
 end
@@ -41,11 +41,11 @@ if strcmp(params.fitting_type, 'gradient_mask')
 
 	if isfield(params, 'tbd_alpha_h') && isfield(params, 'tbd_beta_h') && ...
 		~isempty(params.tbd_alpha_h) && ~isempty(params.tbd_beta_h)
-		[h,f,m,~] = blindLoop_FMH_TbD(im_c, bgr_c, f, M, h, hmask, template, 'maxiter', maxiter, ...
+		[h,f,m,~] = blindLoop_FMH_TbD(im_c, bgr_c, f, M, h, hmask, 'maxiter', maxiter, ...
 		    'rel_tol', rel_tol, 'alpha_h', params.tbd_alpha_h,'beta_h', params.tbd_beta_h, ...
 		    'cg_maxiter', params.cg_maxiter);
 	else
-		[h,f,m,~] = blindLoop_FMH_TbD(im_c, bgr_c, f, M, h, hmask, template, 'maxiter', maxiter,...
+		[h,f,m,~] = blindLoop_FMH_TbD(im_c, bgr_c, f, M, h, hmask, 'maxiter', maxiter,...
 			'rel_tol', rel_tol, 'cg_maxiter', params.cg_maxiter);
 	end
 	if add_dp
@@ -65,7 +65,7 @@ if strcmp(params.fitting_type, 'gradient_mask')
 		end
 		T0s = conv2(double(T>0),ones(3),'same')>0;
 		s = sum(h(T0s));
-		if val < 0.4
+		if val < params.psffit_th
 			s = 0;
 		end
 	end
