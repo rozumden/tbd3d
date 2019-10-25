@@ -1,10 +1,10 @@
-
+fs = 30;
 ns = [8 4 2 1];
 load('../data/TbD-3D-n1_post.mat');
 
 lw = 10;
 bins = 240./ns;
-figure;
+clf
 plot(bins, averages.tiou,'b','LineWidth',lw); hold on
 plot(bins, averages.tiou_nc,'g','LineWidth',lw);
 xlabel('fps');
@@ -12,7 +12,7 @@ ylabel('TIoU')
 xlim([10 bins(end)]);
 ylim([0.4 1])
 box off
-set(gca,'FontSize',20)
+set(gca,'FontSize',fs)
 set(0,'defaulttextinterpreter','none')
 legend({'TbD','TbD-NC'});
 saveas(gcf,'~/tmp/tiou.png');
@@ -28,7 +28,7 @@ ylabel('TIoU-3D')
 xlim([10 bins(end)]);
 ylim([0.4 1])
 box off
-set(gca,'FontSize',20)
+set(gca,'FontSize',fs)
 set(0,'defaulttextinterpreter','none')
 legend({'TbD','TbD-NC','TbD-3D','TbD-O','TbD-3D-O'});
 saveas(gcf,'~/tmp/tiou3d.png');
@@ -42,7 +42,7 @@ if false
 	ylabel('Radius error')
 	xlim([10 bins(end)]);
 	box off
-	set(gca,'FontSize',20)
+	set(gca,'FontSize',fs)
 	set(0,'defaulttextinterpreter','none')
 	legend({'TbD','TbD-3D','TbD-3D-O'});
 	saveas(gcf,'~/tmp/errprs.png');

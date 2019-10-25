@@ -1,12 +1,8 @@
 
-fc = [1.9 1 1.8];
-WB = [2 1 2]; gamma_coef = 0.4;
-
 est_rot = repmat({[]}, 1, numel(seq));
 
 % for i = 1:numel(seq)
-% for i = 7
-if isempty(gcp('nocreate')), parpool(numel(seq)); end
+% for i = seq_id
 parfor i = 1:numel(seq)
 	disp(seq(i).name);
 	warning('off','all');
