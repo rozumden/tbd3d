@@ -61,7 +61,7 @@ best_v = zeros(size(from_to,1),1); % best angular speed for each transform (scal
 best_err = Inf(size(from_to,1),1); % actual transformation error of the best combination
 
 % find optimal rotation for each required transforms
-for i=1:size(from_to,1)
+parfor i=1:size(from_to,1)
 	ix_from = from_to(i,1); ix_to = from_to(i,2);
 
 	% randomly setup searched space (with similar degree of discretization for all tansforms)

@@ -6,6 +6,11 @@ f0_maxiter = IF(isfield(params_tbd3d, 'f0_maxiter'), @()params_tbd3d.f0_maxiter,
 maxiter = IF(isfield(params_tbd3d, 'maxiter'), @()params_tbd3d.maxiter, 20); 
 do_intervals = IF(isfield(params_tbd3d, 'do_intervals'), @()params_tbd3d.do_intervals, false); 
 
+lambda_R = IF(isfield(params_tbd3d, 'lambda_R'), @()params_tbd3d.lambda_R, 1e-2); 
+alpha_cross_f = IF(isfield(params_tbd3d, 'alpha_cross_f'), @()params_tbd3d.alpha_cross_f, 2^-12); 
+alpha_cross_m = IF(isfield(params_tbd3d, 'alpha_cross_m'), @()params_tbd3d.alpha_cross_m, 2^-12); 
+
+
 
 matF = [];
 matM = [];
@@ -28,6 +33,9 @@ bgr = bgr.^(gm);
 f = f.^(gm);
 f = f.*repmat(m,[1 1 3]);
 
+% f = repmat(f,[1 1 1 n]);
+% m = repmat(m,[1 1 1 n]);
+
 for ci = 1:numel(gt_coeffs)
 	coeff = gt_coeffs{ci};
 	
@@ -36,7 +44,7 @@ for ci = 1:numel(gt_coeffs)
 	[h,~,crvlen] = myTrajRender(size2(bgr), coeff, [0 1]);
 	h = h / sum(h(:));
 
-	[F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', f0_maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+	[F0,M0,roi] = estimateFM_motion_pw(img, bgr, h, f, m, f, [], 'alpha', 2^-10, 'alpha_m', 2^-12, 'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', f0_maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6,'alpha_cross_f', alpha_cross_f, 'alpha_cross_m', alpha_cross_m, 'lambda_R', lambda_R);
 
 	if do_intervals
 		n = max(1, min(max_n, 2^round(log2( round(crvlen / pixels_per_view)))));
@@ -53,8 +61,9 @@ for ci = 1:numel(gt_coeffs)
 		Hs = cat(3, Hs, H);
 	end
 	Hs = Hs / sum(Hs(:));
-		
-	[Fs,Ms,roi] = estimateFM_motion_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', 3^-10, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6);
+	
+	alpha_w = 2^-12; %%  3^-10
+	[Fs,Ms,roi] = estimateFM_motion_pw(img, bgr, Hs, Ftemplate, Mtemplate, [], [],'alpha', alpha_w, 'alpha_m', 2^-12,  'gamma', 1, 'beta_fm', 1e-3, 'lambda', 1e-3, 'maxiter', maxiter, 'rel_tol', 0, 'cg_maxiter', 50, 'cg_tol', 1e-6,'alpha_cross_f', alpha_cross_f, 'alpha_cross_m', alpha_cross_m, 'lambda_R', lambda_R);
 	Fs = Fs.^(1/gm); Ms = Ms.^(1/gm);
 
 	matF = cat(4, matF, Fs);

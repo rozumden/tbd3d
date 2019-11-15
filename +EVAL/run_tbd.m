@@ -105,4 +105,73 @@ meanex = exectime ./ lens;
 
 
 
+if false
+	[gt_coeffs{i}] = par2coeff(t.PAR);
+	ids = 56:60; id = 58;
 
+	[~,matF_gt{i},matM_gt{i},ind_gt{i}] = TD.estimate_3dtraj(im2double(t.Vk(:,:,:,ids)), gt_coeffs{i}(ids), params0.M, n, params_tbd3d);
+
+	f1 = montage(matF_gt{i}(:,:,:,2*n+1:2*n+8),'Size',[1 8]); 
+	f1 = f1.CData;
+	m1 = montage(matM_gt{i}(:,:,:,2*n+1:2*n+8),'Size',[1 8]); m1 = m1.CData;
+	imwrite(f1,['~/tmp/recon/tennis_F.png']);
+	imwrite(m1,['~/tmp/recon/tennis_M.png']);
+
+	r = size(f1,1)/2;
+	fgt = [];
+	for k = 1:8
+		ind = (id-1)*n + k + 1;
+		nma = sprintf('/mnt/lascar/rozumden/dataset/TbD_hs/tennis/%08d.png', ind);
+		img = imread(nma);
+		ps = gt_coeffs{i}{id}{k}(:,1) + gt_coeffs{i}{id}{k}(:,2);
+		f = img(ps(2)-r:ps(2)+r,ps(1)-r:ps(1)+r,:);
+		fgt = cat(2,fgt,f);
+	end
+	imwrite(fgt,['~/tmp/recon/tennis_FGT.png']);
+
+	scl = 1;
+	new_coeff = gt_coeffs{i}{id};
+	for tmp = 1:n, new_coeff{tmp} = scl*new_coeff{tmp}; end
+	% new_coeff = [gt_coeffs{i}{id}{1}(:,1) gt_coeffs{i}{id}{end}(:,1)];
+	% new_coeff = {[new_coeff(:,1) new_coeff(:,2)-new_coeff(:,1)]*scl};
+	inp = imresize(t.Vk(:,:,:,id),scl);
+	Hall = myTrajRender(size2(inp), new_coeff, [0 1]);
+	inp(logical(Hall>0)) = 0;
+	inp(logical(cat(3,zeros(size(Hall)),Hall>0))) = 255;
+	inp(logical(cat(3,zeros(size(Hall)),zeros(size(Hall)),Hall>0))) = 0;
+	HM = conv2(Hall,ones(scl*size(matM_hs{i}(:,:,:,1))),'same');
+	[yy,xx]=find(HM>0);
+
+	% for tk = 1:n
+	% 	% position = new_coeff{1}(:,1) + ((tk)/n)*new_coeff{1}(:,2);
+	% 	position = new_coeff{tk}(:,1) + 1*new_coeff{tk}(:,2); 
+	% 	position(2) = position(2)-10;
+	% 	position(1) = position(1)-20;
+
+	% 	inp = insertText(inp,position',tk,'BoxOpacity',0,'FontSize',22,'TextColor','white');
+	% 	clr = [255 255 255];
+	% 	% position = round(new_coeff{1}(:,1) + ((tk-0.5)/n)*new_coeff{1}(:,2));
+	% 	position = new_coeff{tk}(:,1) + 0.5*new_coeff{tk}(:,2);
+	% 	for ii = -1:1
+	% 		for jj = -1:1
+	% 			for ui = 1:3, inp(position(2)+ii,position(1)+jj,ui) = clr(ui); end
+	% 		end
+	% 	end
+	% end
+	inp = inp(min(yy(:)):max(yy(:)),min(xx(:)):max(xx(:)),:);
+	imwrite(inp,['~/tmp/recon/tennis.png']);
+
+	Hs = [];
+	img = t.Vk(:,:,:,id);
+	gap = 0.07;
+	for k3 = 1:n
+		H = evaluate_vcoeff(size2(t.Vk), gt_coeffs{i}{id}, [( ( (k3-1+gap) )/n) (k3/n)]);
+		H = double(H);
+		H = H ./ sum(H(:));
+		Hs = cat(3, Hs, H);
+	end
+	Hs = Hs / sum(Hs(:));
+	bgr = median(t.Vk,4);
+	save(['~/tmp/tennis.mat'],'img','bgr','Hs','Hall','f1','m1','fgt');
+
+end

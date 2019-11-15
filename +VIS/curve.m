@@ -10,16 +10,16 @@ if iscell(curves)
 		end
 	end	
 else
-	step_size = 0.05;
+	step_size = 0.5;
 	tmin = curves(1).fit_iv(1);
 	tmax = curves(end).fit_iv(2) + 1;
 	last_pnt = [];
 	for tind = tmin:step_size:tmax
 		pnt = evaluate_curve_coeff(curves, tind);
 		if isempty(last_pnt)
-			plot(pnt(1),pnt(2),'.m');
+			plot(pnt(1),pnt(2),'.g');
 		else
-			plot([pnt(1) last_pnt(1)],[pnt(2) last_pnt(2)],'m','LineWidth',4);
+			plot([pnt(1) last_pnt(1)],[pnt(2) last_pnt(2)],'g','LineWidth',4);
 		end
 		last_pnt = pnt;
 	end

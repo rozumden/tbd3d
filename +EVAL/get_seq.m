@@ -103,6 +103,10 @@ elseif strcmp(lower(dset), 'tbd-3d')
 elseif strcmp(lower(dset), 'tbd-3d-aero')
 	seq(numel(seq)+1).name = 'HighFPS_GT_outa1.mat';
 	folder = '/mnt/lascar/rozumden/dataset/TbD-3D';
+elseif strcmp(lower(dset), 'gym')
+	seq(numel(seq)+1).name = 'HighFPS_GTundistorted2_lab3D_1.mat';
+	seq(numel(seq)+1).name = 'HighFPS_GTundistorted2_lab2.mat';
+	folder = '/mnt/lascar/rozumden/dataset/Gym';
 elseif strcmp(lower(dset), 'atp')
 	% 1
 	seq(numel(seq)+1).name = 'atp_serves.avi';

@@ -28,7 +28,7 @@ parfor i = 1:numel(seq)
 	est_rot{i} = struct('hs',[],'or',[],'est',[]);
 
 	% eval_at = [batch:batch:numel(imgs)];
-	eval_at = [batch];
+	eval_at = [batch:4:1.5*batch];
 
 	for k = eval_at
 		disp([int2str(ki) ' : ' seq(i).name]);
@@ -89,8 +89,8 @@ for i = 1:numel(seq)
 	end
 	err_u(i) = mean(rad2deg(acos(abs(ierr_u))));
 	err_or_u(i) = mean(rad2deg(acos(abs(ierr_or_u))));
-	err_rot(i) = mean(abs(rot_hs - rot_est)./rot_hs);
-	err_or_rot(i) = mean(abs(rot_hs - rot_or)./rot_hs); 
+	err_rot(i) = mean(abs(rot_hs - rot_est));
+	err_or_rot(i) = mean(abs(rot_hs - rot_or)); 
 end
 
 if true

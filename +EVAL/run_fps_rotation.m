@@ -1,5 +1,5 @@
 resz = 0.5;
-do_save = true;
+do_save = false;
 do_parallel = true;
 
 [params, cfg] = EVAL.get_params(true);
@@ -11,7 +11,7 @@ do_parallel = true;
 fc = [1.9 1 1.8];
 WB = [2 1 2]; gamma_coef = 0.4;
 
-rot_averages = struct('err_or_u',[],'err_u',[],'err_or_rot',[],'err_rot',[]);
+rot_averages = struct('err_or_u',[],'err_u',[],'err_or_rot',[],'err_rot',[],'alla',[]);
 
 if do_parallel
 	seq_id = [1:numel(seq)];
@@ -66,9 +66,16 @@ for n = ns
 	rot_averages.err_u = [rot_averages.err_u mean(err_u)];
 	rot_averages.err_or_rot = [rot_averages.err_or_rot mean(err_or_rot)];
 	rot_averages.err_rot = [rot_averages.err_rot mean(err_rot)];
+	aalstr.err_or_u = err_or_u;
+	aalstr.err_u = err_u;
+	aalstr.err_or_rot = err_or_rot;
+	aalstr.err_rot = err_rot;
+	rot_averages.alla = [rot_averages.alla aalstr];
 end
 
 if do_save
 	save('~/projects/data/rotation_averages.mat','rot_averages');
+	% save('~/projects/data/TbD-3D-rotations-sliding.mat','rot_averages');
+	% save('~/projects/data/TbD-3D-rotations.mat', 'err_or_u','err_u','err_or_rot','err_rot');
 end
 

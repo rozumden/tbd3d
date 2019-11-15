@@ -1,7 +1,11 @@
-function [matF, matM, ind] = get_views_hs_3d(video, curves, PAR, nf, use_gt)
+function [matF, matM, ind] = get_views_hs_3d(video, curves, PAR, nf, use_gt, circ)
 if ~exist('use_gt','var')
 	use_gt = true;
 end
+if ~exist('circ','var')
+	circ = true;
+end
+
 rr = [PAR.R];
 Mmax = double(diskMask([],max(rr(:))));
 
@@ -24,6 +28,10 @@ if use_gt
 			rad = ceil(PAR(k).R(kk));
 			if isnan(rad), rad = rad0; end
 			M = diskMask(size(Mmax),rad);
+			if ~circ
+				M = double(M >= 0);
+			end
+				
 			F = zeros([size(M) 3]);
 			H = zeros(size2(img));
 			H(pr(2),pr(1),:) = 1;
@@ -60,6 +68,9 @@ else
 				rad = ceil(PAR(k).R(kk));
 				if isnan(rad), rad = rad0; end
 				M = diskMask(size(Mmax),rad);
+				if ~circ
+					M = double(M >= 0);
+				end
 
 				F = zeros([size(M) 3]);
 				H = zeros(size2(img));

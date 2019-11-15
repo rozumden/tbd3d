@@ -6,6 +6,7 @@ C = strsplit(seqname,'_');
 name = C{end};
 
 scl_table = '{!}{0.2\\textwidth}';
+scl_table = '{0.333\\textwidth}{!}';
 prename = 'imgs/thumbnails/tbd/';
 
 direc = '~/projects/vis/image';
@@ -183,7 +184,16 @@ fid = fopen(ffile,'wt');
 fprintf(fid, strrep(src,prename,''));
 fclose(fid);
 
-ffile = fullfile(direc, [name '.tex']);
+texname = name;
+if exist('szs','var') 
+    if iscell(gt_coeffs)
+        texname = [name '_o'];
+    else
+        texname = [name '_e'];
+    end
+end
+
+ffile = fullfile(direc, [texname '.tex']);
 fid = fopen(ffile,'wt');
 srctable0 = ['\\resizebox ' scl_table ' {' srctable '}'];
 fprintf(fid, srctable0);
