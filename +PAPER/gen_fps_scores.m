@@ -1,11 +1,13 @@
 fs = 35;
-ns = [8 4 2 1];
+ns = [8 4 2];
 load('../data/TbD-3D-n1_post.mat');
 % clr1 = [0.85 0.47 0.32];
 % clr2 = [0.1 0.25 0.89];
 % clr3 = [0 0.4470 0.7410];
 % clr4 = 'm';
 % clr5 = [148 130 78]./255;
+
+set(0,'defaulttextinterpreter','latex')
 
 clr1 = [178, 56, 80]/255;
 clr2 = [59, 139, 235]/255;
@@ -37,7 +39,13 @@ end
 clf
 
 if barplot
-	b = bar([1 2 3 4], [averages.tiou3d; averages.tiou3d_nc; averages.nc3d3d; averages.tiou3d_nc3d_oracle]'); 
+	if numel(ns) > 3
+		b = bar([1 2 3 4], [averages.tiou3d; averages.tiou3d_nc; averages.nc3d3d; averages.tiou3d_nc3d_oracle]'); 
+	else
+		b = bar([1 2 3], [averages.tiou3d(1:3); averages.tiou3d_nc(1:3); averages.nc3d3d(1:3); averages.tiou3d_nc3d_oracle(1:3)]'); 
+		xlim([-0.5 4]);
+		xticks([1 2 3]);
+	end
 	b(1).FaceColor = clr4;
 	b(2).FaceColor = clr5;
 	b(3).FaceColor = clr1;
@@ -61,7 +69,13 @@ box off
 set(gca,'FontSize',fs)
 set(0,'defaulttextinterpreter','none')
 legend({'TbD','TbD-NC','TbD-3D','TbD-3D-O'},'Location','northwest');
-saveas(gcf,'~/tmp/tiou3d.png');
+
+h = gcf;
+set(h,'PaperOrientation','landscape');
+set(h,'PaperUnits','normalized');
+set(h,'PaperPosition', [0 0 1 1]);
+print(h, '-dpdf', '~/tmp/tiou3d.pdf')
+% saveas(gcf,'~/tmp/tiou3d.png');
 
 if false
 	clf

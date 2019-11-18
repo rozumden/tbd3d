@@ -14,7 +14,7 @@ end
 matF = ((matF.*reshape(WB,1,1,[])/(max(WB))).^gamma_coef);
 
 th = 0.7;
-draw_rotation = true;  %% draw rotation axis
+draw_rotation = false;  %% draw rotation axis
 
 n = size(matF_hs,4) / numel(frame);
 frmt = '.png';
@@ -60,7 +60,7 @@ for i = iv
 		MM = MM(end/2-r+1:end/2+r,end/2-r+1:end/2+r,:).*GTM;
 	end
 
-	if true
+	if draw_rotation
 		i1 = repmat(GTM < 1-th,[1 1 3]); 
 		F3D(i1) = 1-F3D(i1);
 		GT(i1) = 1-GT(i1);
@@ -149,10 +149,10 @@ for i = iv
 		else
 			% imwrite(jnt,['~/joint_' names{ki} frmt]);
 			imwrite(inimg,['~/img_' names{ki} frmt]);
-			imwrite(F3D,['~/est_' names{ki} frmt]);
-			imwrite(MM,['~/estM_' names{ki} frmt]);
-			imwrite(GT,['~/gt_' names{ki} frmt]);
-			imwrite(GTM,['~/gtM_' names{ki} frmt]);
+			% imwrite(F3D,['~/est_' names{ki} frmt]);
+			% imwrite(MM,['~/estM_' names{ki} frmt]);
+			% imwrite(GT,['~/gt_' names{ki} frmt]);
+			% imwrite(GTM,['~/gtM_' names{ki} frmt]);
 		end			
 	end
 end
