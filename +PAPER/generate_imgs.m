@@ -14,7 +14,7 @@ end
 matF = ((matF.*reshape(WB,1,1,[])/(max(WB))).^gamma_coef);
 
 th = 0.7;
-draw_rotation = false;  %% draw rotation axis
+draw_rotation = true;  %% draw rotation axis
 
 n = size(matF_hs,4) / numel(frame);
 frmt = '.png';
@@ -65,7 +65,7 @@ for i = iv
 		F3D(i1) = 1-F3D(i1);
 		GT(i1) = 1-GT(i1);
 
-		if draw_rotation
+		if false
 			clr = [255 50 0];
 			for ui = 1:3
 				for ii = -2:2

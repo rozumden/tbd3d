@@ -1,4 +1,4 @@
-function draw_line3(p1, p2, varargin)
+function [sall] = draw_line3(p1, p2, varargin)
 % help
 % draw_line3 draw directional vector points in 3D with directional arrows
 %
@@ -119,24 +119,30 @@ node1 = get_nodes(p1, p2, values);
 % check the arrow directions and plot the line and thte arrows according to that
 % if angle of ArrowAngle > 90 then the arrow is drawn in a compressive way
 %
+sall = [];
 if values.ArrowDirection   == 2;
     node2 = get_nodes(p2, p1, values);
     if(values.ArrowAngle > 0) && (values.ArrowAngle < 90);
-        plot_line(node1{4}{1}, node2{4}{1}, node1{2}{2}, values);
+        [s1,s2,s3] = plot_line(node1{4}{1}, node2{4}{1}, node1{2}{2}, values);
+        sall = [sall s1 s2 s3];
     else
-        plot_line(node1{2}{1}, node2{2}{1}, node1{2}{2}, values);
+        [s1,s2,s3] = plot_line(node1{2}{1}, node2{2}{1}, node1{2}{2}, values);
     end
         
-    plot_arrow(node1{2}{1}, node1{3}{1}, node1{4}{1}, node1{2}{2}, values);
-    plot_arrow(node2{2}{1}, node2{3}{1}, node2{4}{1}, node2{2}{2}, values);
+    [s1,s2] = plot_arrow(node1{2}{1}, node1{3}{1}, node1{4}{1}, node1{2}{2}, values);
+    [s3,s4] = plot_arrow(node2{2}{1}, node2{3}{1}, node2{4}{1}, node2{2}{2}, values);
+    sall = [sall s1 s2 s3 s4];
 else
     if(values.ArrowAngle > 0) && (values.ArrowAngle < 90);
-        plot_line(node1{1}{1}, node1{4}{1}, node1{2}{2}, values);
+        [s1,s2,s3] = plot_line(node1{1}{1}, node1{4}{1}, node1{2}{2}, values);
+        sall = [sall s1 s2 s3];
     else
-        plot_line(node1{1}{1}, node1{2}{1}, node1{2}{2}, values);
+        [s1,s2,s3] = plot_line(node1{1}{1}, node1{2}{1}, node1{2}{2}, values);
+        sall = [sall s1 s2 s3];
     end
     if values.ArrowDirection   == 1;
-        plot_arrow(node1{2}{1}, node1{3}{1}, node1{4}{1}, node1{2}{2}, values);
+        [s1,s2] = plot_arrow(node1{2}{1}, node1{3}{1}, node1{4}{1}, node1{2}{2}, values);
+        sall = [sall s1 s2];
     end
 end 
 % if ~hold_status
@@ -174,7 +180,7 @@ cmd = 'x';
 para = sign(para) * (values.ArrowLength - values.ArrowIntend);
 node{4} = gen_node(node{2}, cmd, para);
 end
-function plot_arrow(node1, node2, node3, rot, values)
+function [s1,s2] = plot_arrow(node1, node2, node3, rot, values)
     % arrow cordinates
     if (values.ArrowAngle > 0) && (values.ArrowAngle < 90)
         arrow_width1 = abs(values.ArrowLength * tan(pi * values.ArrowAngle/180));
@@ -193,7 +199,7 @@ function plot_arrow(node1, node2, node3, rot, values)
     s2 = surf(s2_x, s2_y, s2_z);
     set(s2, 'FaceColor', values.ArrowColor , 'EdgeColor', values.EdgeColor, 'EdgeAlpha', values.EdgeAlpha, 'FaceAlpha', values.FaceAlpha, 'LineStyle',values.LineStyle);
  end
-function plot_line(node1, node2, rot, values)
+function [s1,s2,s3] = plot_line(node1, node2, rot, values)
 len = abs(sqrt(sum((node2- node1).^2)));
 seg = [1, len/2, 0 0 , 0 values.LineWidth values.LineWidth, 0 values.LineWidth values.LineWidth];
 [s1_x s1_y s1_z] = truncated_cone_sk(seg, (node1+ node2)./2, rot);

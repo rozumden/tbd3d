@@ -1,4 +1,4 @@
-function [Vk,Vk_WB,PAR,V_WB] = generate_lowFPSvideo(V,POS,R,k,resz)
+function [Vk,Vk_WB,PAR,V_WB,V_WB_POS] = generate_lowFPSvideo(V,POS,R,k,resz)
 %% input: V,POS,R
 % fps/k
 if ~exist('k','var')
