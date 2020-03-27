@@ -38,7 +38,7 @@ if ~params_tbd3d.do_intervals
 	szs = num2cell(szs,1);
 end
 
-[ind, unisort] = unique(ind);
-szs = szs(unisort);
-matF = matF(:,:,:,unisort);
-matM = matM(:,:,:,unisort);
+% [ind, unisort] = unique(ind);
+% szs = szs(unisort);
+% matF = matF(:,:,:,unisort);
+% matM = matM(:,:,:,unisort);

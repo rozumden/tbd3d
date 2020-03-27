@@ -103,6 +103,14 @@ elseif strcmp(lower(dset), 'tbd-3d')
 elseif strcmp(lower(dset), 'tbd-3d-aero')
 	seq(numel(seq)+1).name = 'HighFPS_GT_outa1.mat';
 	folder = '/mnt/lascar/rozumden/dataset/TbD-3D';
+elseif strcmp(lower(dset), 'falling')
+	seq(numel(seq)+1).name = 'v_box_GTgamma.mat';
+	seq(numel(seq)+1).name = 'v_key_GTgamma.mat';
+	seq(numel(seq)+1).name = 'v_pen_GTgamma.mat';
+	seq(numel(seq)+1).name = 'v_cell_GTgamma.mat';
+	seq(numel(seq)+1).name = 'v_marker_GTgamma.mat';
+	seq(numel(seq)+1).name = 'v_rubber_GTgamma.mat';
+	folder = '/mnt/lascar/rozumden/dataset/falling_objects';
 elseif strcmp(lower(dset), 'gym')
 	seq(numel(seq)+1).name = 'HighFPS_GTundistorted2_lab3D_1.mat';
 	seq(numel(seq)+1).name = 'HighFPS_GTundistorted2_lab2.mat';
